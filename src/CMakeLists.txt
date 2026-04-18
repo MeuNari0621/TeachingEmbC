@@ -1,29 +1,27 @@
-# c_src/CMakeLists.txt
+# src/CMakeLists.txt
 
-# ソースファイルを指定
-set(C_SOURCES
-    APP/SRC/add.c
+# === アプリケーション層（純粋関数＋ビジネスロジック）===
+set(APP_SOURCES
+    app/temperature.c
+    app/temp_monitor.c
 )
 
-# C言語のライブラリを生成
-add_library(MyCLibrary STATIC ${C_SOURCES})
-
-# インクルードディレクトリを設定
-target_include_directories(MyCLibrary PUBLIC
-    APP/INC
-    DRV/INC
+add_library(AppLibrary STATIC ${APP_SOURCES})
+target_include_directories(AppLibrary PUBLIC
+    app
+    hal
 )
 
-# ソースファイルを指定
-set(DRV_SOURCES
-    DRV/SRC/drv1.c
+# === HAL 層（ハードウェア抽象化）===
+set(HAL_SOURCES
+    hal/hal_adc.c
+    hal/hal_gpio.c
 )
 
-# C言語のライブラリを生成
-add_library(DRVLibrary STATIC ${DRV_SOURCES})
-
-# インクルードディレクトリを設定
-target_include_directories(DRVLibrary PUBLIC
-    APP/INC
-    DRV/INC
+add_library(HalLibrary STATIC ${HAL_SOURCES})
+target_include_directories(HalLibrary PUBLIC
+    hal
 )
+
+# アプリケーション → HAL の依存
+target_link_libraries(AppLibrary PUBLIC HalLibrary)

@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>組み込みC TDD教材 — Google Test × AI駆動開発</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root {
+    --primary: #1565c0;
+    --primary-light: #e3f2fd;
+    --success: #2e7d32;
+    --success-light: #e8f5e9;
+    --warning: #ef6c00;
+    --warning-light: #fff3e0;
+    --danger: #c62828;
+    --danger-light: #ffcdd2;
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --text: #212121;
+    --text-secondary: #616161;
+    --border: #e0e0e0;
+    --radius: 8px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+header { background: linear-gradient(135deg, var(--primary), #0d47a1); color: #fff; padding: 2rem; text-align: center; }
+header h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+header p { opacity: 0.9; font-size: 0.95rem; }
+
+/* Tabs */
+.tab-container { max-width: 1100px; margin: 0 auto; padding: 0 1rem; }
+.tab-nav { display: flex; flex-wrap: wrap; gap: 2px; background: var(--surface); border-radius: var(--radius) var(--radius) 0 0; box-shadow: var(--shadow); margin-top: -1.5rem; position: relative; z-index: 10; overflow-x: auto; }
+.tab-btn { flex: 1; min-width: 120px; padding: 0.9rem 0.5rem; border: none; background: var(--surface); cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); transition: all 0.2s; border-bottom: 3px solid transparent; white-space: nowrap; }
+.tab-btn:hover { background: var(--primary-light); color: var(--primary); }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+.tab-content { display: none; background: var(--surface); padding: 2rem; border-radius: 0 0 var(--radius) var(--radius); box-shadow: var(--shadow); margin-bottom: 2rem; }
+.tab-content.active { display: block; }
+
+/* Glossary */
+.glossary-btn { position: fixed; bottom: 2rem; right: 2rem; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: #fff; border: none; cursor: pointer; font-size: 1.5rem; box-shadow: 0 4px 12px rgba(21,101,192,0.3); z-index: 1000; transition: transform 0.2s; }
+.glossary-btn:hover { transform: scale(1.1); }
+.glossary-popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(90vw, 650px); max-height: 80vh; background: var(--surface); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 1001; overflow: hidden; }
+.glossary-popup.show { display: block; }
+.glossary-header { padding: 1rem; background: var(--primary); color: #fff; display: flex; align-items: center; gap: 1rem; }
+.glossary-header input { flex: 1; padding: 0.5rem 1rem; border: none; border-radius: var(--radius); font-size: 0.95rem; }
+.glossary-close { background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; padding: 0 0.5rem; }
+.glossary-body { padding: 1rem; overflow-y: auto; max-height: calc(80vh - 70px); }
+.glossary-body table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.glossary-body th, .glossary-body td { padding: 0.5rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.glossary-body th { background: var(--primary-light); font-weight: 600; position: sticky; top: 0; }
+.glossary-body tr.hidden { display: none; }
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; }
+.overlay.show { display: block; }
+
+/* Content */
+h2 { color: var(--primary); border-left: 4px solid var(--primary); padding-left: 0.8rem; margin: 2rem 0 1rem; font-size: 1.4rem; }
+h3 { color: var(--text); margin: 1.5rem 0 0.8rem; font-size: 1.15rem; }
+p, li { margin-bottom: 0.6rem; }
+ul, ol { padding-left: 1.5rem; }
+blockquote { border-left: 4px solid var(--primary); background: var(--primary-light); padding: 1rem; margin: 1rem 0; border-radius: 0 var(--radius) var(--radius) 0; font-style: italic; }
+pre { background: #263238; color: #eeffff; padding: 1rem; border-radius: var(--radius); overflow-x: auto; margin: 1rem 0; font-size: 0.85rem; line-height: 1.5; }
+code { font-family: 'Fira Code', 'Consolas', monospace; }
+p code, li code, td code { background: #f5f5f5; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.9em; color: var(--danger); }
+table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+th, td { padding: 0.6rem; border: 1px solid var(--border); }
+th { background: var(--primary-light); font-weight: 600; }
+.mermaid { margin: 1.5rem 0; text-align: center; }
+.note { background: var(--success-light); border-left: 4px solid var(--success); padding: 1rem; margin: 1rem 0; border-radius: 0 var(--radius) var(--radius) 0; }
+.warn { background: var(--warning-light); border-left: 4px solid var(--warning); padding: 1rem; margin: 1rem 0; border-radius: 0 var(--radius) var(--radius) 0; }
+.danger { background: var(--danger-light); border-left: 4px solid var(--danger); padding: 1rem; margin: 1rem 0; border-radius: 0 var(--radius) var(--radius) 0; }
+.comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+.comparison > div { padding: 1rem; border-radius: var(--radius); }
+.before-box { background: var(--danger-light); border: 1px solid #ef9a9a; }
+.after-box { background: var(--success-light); border: 1px solid #a5d6a7; }
+@media (max-width: 768px) {
+    .tab-btn { min-width: 100px; font-size: 0.75rem; padding: 0.7rem 0.3rem; }
+    .tab-content { padding: 1rem; }
+    .comparison { grid-template-columns: 1fr; }
+}
+@media print {
+    .tab-nav, .glossary-btn { display: none; }
+    .tab-content { display: block !important; page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>組み込みC テスト駆動開発 教材</h1>
+<p>Google Test × FFF × AI駆動開発 — ベストプラクティスを Before/After で学ぶ</p>
+</header>
+
+<div class="tab-container">
+<nav class="tab-nav">
+<button class="tab-btn active" data-tab="ch1">第1章<br>はじめに</button>
+<button class="tab-btn" data-tab="ch2">第2章<br>環境構築</button>
+<button class="tab-btn" data-tab="ch3">第3章<br>Google Test</button>
+<button class="tab-btn" data-tab="ch4">第4章<br>FFF</button>
+<button class="tab-btn" data-tab="ch5">第5章<br>テスト容易性</button>
+<button class="tab-btn" data-tab="ch6">第6章<br>ポートアダプタ</button>
+<button class="tab-btn" data-tab="ch7">第7章<br>AI×TDD</button>
+</nav>
+
+<!-- ===== 第1章 ===== -->
+<section class="tab-content active" id="ch1">
+<h2>第1章: なぜ組み込みCでTDDが必要か</h2>
+
+<h3>1.1 組み込み開発の課題</h3>
+<div class="danger">
+<strong>よくある問題:</strong>
+「ターゲットボードが届くまでテストできない」「ハードウェアに依存するコードが多すぎて、バグの切り分けができない」「テストが属人的で、毎回手動で動作確認している」
+</div>
+
+<div class="mermaid">
+graph TD
+    A["組み込み開発の課題"] --> B["ハードウェア依存"]
+    A --> C["テスト環境の制約"]
+    A --> D["品質リスク"]
+    B --> B1["レジスタ直接アクセス"]
+    B --> B2["ペリフェラル初期化"]
+    B --> B3["割り込みハンドラ"]
+    C --> C1["実機が必要"]
+    C --> C2["再現困難なバグ"]
+    C --> C3["テスト自動化が困難"]
+    D --> D1["リコール・安全問題"]
+    D --> D2["フィールドアップデート困難"]
+    D --> D3["長期保守コスト"]
+    style A fill:#ffcdd2,stroke:#c62828
+    style B fill:#fff3e0
+    style C fill:#fff3e0
+    style D fill:#fff3e0
+</div>
+
+<h3>1.2 解決策: ホストテスト + TDD</h3>
+<p>これらの課題を解決するアプローチが <strong>ホスト環境でのTDD（テスト駆動開発）</strong> です。</p>
+
+<div class="mermaid">
+graph LR
+    subgraph Host["🖥️ ホスト環境（PC）"]
+        GT["Google Test"]
+        FFF_H["FFF（フェイク生成）"]
+        SRC["Cソースコード"]
+        GT --> SRC
+        FFF_H --> SRC
+    end
+    subgraph Target["🔌 ターゲット環境"]
+        MCU["マイコン"]
+        HW["ハードウェア"]
+    end
+    SRC -->|"同じソースをビルド"| MCU
+    style Host fill:#e8f5e9,stroke:#2e7d32
+    style Target fill:#e3f2fd,stroke:#1565c0
+</div>
+
+<div class="note">
+<strong>ポイント:</strong> プロダクションコード（C言語）をホストPC上でコンパイル・テストし、同じコードをターゲットにも使う。ハードウェア依存部分は <strong>HAL（ハードウェア抽象化レイヤ）</strong> で分離し、テスト時はフェイクに差し替える。
+</div>
+
+<h3>1.3 純粋関数と副作用</h3>
+<p>本教材の核心的な概念は <strong>純粋関数</strong> と <strong>副作用</strong> の分離です。</p>
+
+<h3>純粋関数とは</h3>
+<p>同じ入力に対して常に同じ出力を返し、外部の状態を変更しない関数。</p>
+<pre><code>/* ✅ 純粋関数: テストが非常に簡単 */
+int16_t temperature_convert(uint16_t raw_adc) {
+    int32_t mv = (int32_t)raw_adc * 3300 / 4095;
+    return (int16_t)(mv / 10);
+}</code></pre>
+
+<h3>副作用を持つ関数とは</h3>
+<p>ハードウェアにアクセスしたり、グローバル変数を変更する関数。</p>
+<pre><code>/* ⚠️ 副作用あり: HAL経由でハードウェアにアクセス */
+void hal_gpio_write(uint8_t pin, uint8_t state);
+uint16_t hal_adc_read(uint8_t channel);</code></pre>
+
+<div class="mermaid">
+graph TD
+    subgraph Pure["✅ 純粋関数（テスト容易）"]
+        P1["temperature_convert()"]
+        P2["temperature_is_over()"]
+        P3["temperature_is_valid()"]
+    end
+    subgraph SideEffect["⚠️ 副作用あり（HALで分離）"]
+        S1["hal_adc_read()"]
+        S2["hal_gpio_write()"]
+    end
+    subgraph Orchestrator["🔗 オーケストレータ"]
+        O1["temp_monitor_execute()"]
+    end
+    O1 --> S1
+    O1 --> P1
+    O1 --> P2
+    O1 --> P3
+    O1 --> S2
+    style Pure fill:#e8f5e9,stroke:#2e7d32
+    style SideEffect fill:#fff3e0,stroke:#ef6c00
+    style Orchestrator fill:#e3f2fd,stroke:#1565c0
+</div>
+
+<blockquote>ロジックは純粋関数に、ハードウェアアクセスはHAL関数に分離する。オーケストレータがこれらを組み合わせる。</blockquote>
+
+<h3>1.4 TDD の 3 ステップ（Red → Green → Refactor）</h3>
+
+<div class="mermaid">
+graph LR
+    R["🔴 Red\nまずテストを書く\n（失敗する）"] --> G["🟢 Green\n最小限の実装で\nテストを通す"]
+    G --> RF["🔵 Refactor\nコードを\n整理する"]
+    RF --> R
+    style R fill:#ffcdd2,stroke:#c62828
+    style G fill:#c8e6c9,stroke:#2e7d32
+    style RF fill:#bbdefb,stroke:#1565c0
+</div>
+
+<ol>
+<li><strong>Red</strong>: 実装前にテストを書く → 当然テストは失敗する</li>
+<li><strong>Green</strong>: テストが通る最小限のコードを書く</li>
+<li><strong>Refactor</strong>: 重複を排除し、設計を改善する（テストは通ったまま）</li>
+</ol>
+
+<h3>1.5 本教材の学習ゴール</h3>
+<table>
+<tr><th>ゴール</th><th>内容</th></tr>
+<tr><td>テスト容易性</td><td>純粋関数と副作用を分離し、テストしやすい設計ができる</td></tr>
+<tr><td>移植性</td><td>HAL を介してハードウェア依存を分離し、ホスト/ターゲット両方でビルドできる</td></tr>
+<tr><td>SOLID 原則</td><td>C言語で SOLID を適用し、変更に強い設計ができる</td></tr>
+<tr><td>AI 活用</td><td>AI にテストとコードを生成させ、人間がレビューする開発フローを実践できる</td></tr>
+</table>
+
+<h3>1.6 本教材で使う題材</h3>
+<p>温度監視システムを例に学びます。</p>
+<div class="mermaid">
+graph LR
+    SENSOR["🌡️ 温度センサ\n（ADC入力）"] --> CONVERT["📐 温度変換\n（純粋関数）"]
+    CONVERT --> CHECK["✅ 閾値チェック\n（純粋関数）"]
+    CHECK --> LED["💡 アラームLED\n（GPIO出力）"]
+    style SENSOR fill:#e3f2fd
+    style CONVERT fill:#e8f5e9
+    style CHECK fill:#e8f5e9
+    style LED fill:#fff3e0
+</div>
+</section>
+
+<!-- ===== 第2章 ===== -->
+<section class="tab-content" id="ch2">
+<h2>第2章: 環境構築</h2>
+
+<h3>2.1 必要なツール</h3>
+<table>
+<tr><th>ツール</th><th>用途</th><th>インストール方法</th></tr>
+<tr><td>GCC / G++</td><td>C/C++ コンパイラ</td><td><code>sudo apt install build-essential</code></td></tr>
+<tr><td>CMake (3.14+)</td><td>ビルドシステム</td><td><code>sudo apt install cmake</code></td></tr>
+<tr><td>Google Test</td><td>テストフレームワーク</td><td>CMake FetchContent で自動取得</td></tr>
+<tr><td>FFF (fff.h)</td><td>フェイク関数生成</td><td>ヘッダファイル1つを配置</td></tr>
+</table>
+
+<h3>2.2 プロジェクト構成</h3>
+<div class="mermaid">
+graph TD
+    ROOT["📁 プロジェクトルート"] --> SRC["📁 src/"]
+    ROOT --> TEST["📁 Test/"]
+    ROOT --> DOCS["📁 docs/"]
+    ROOT --> CMAKE_ROOT["📄 CMakeLists.txt"]
+    SRC --> APP["📁 app/ — アプリケーション層"]
+    SRC --> HAL["📁 hal/ — HAL層"]
+    SRC --> BEFORE["📁 before/ — 悪い例（教材用）"]
+    SRC --> CMAKE_SRC["📄 CMakeLists.txt"]
+    APP --> TEMP_H["📄 temperature.h/c — 純粋関数"]
+    APP --> MON_H["📄 temp_monitor.h/c — オーケストレータ"]
+    HAL --> ADC_H["📄 hal_adc.h/c — ADC抽象化"]
+    HAL --> GPIO_H["📄 hal_gpio.h/c — GPIO抽象化"]
+    TEST --> TEST_APP["📄 test_app.cpp — 純粋関数テスト"]
+    TEST --> TEST_DRV["📄 test_drv.cpp — FFF統合テスト"]
+    TEST --> FFF_HF["📄 fff.h — フェイク生成ヘッダ"]
+    style APP fill:#e8f5e9
+    style HAL fill:#fff3e0
+    style BEFORE fill:#ffcdd2
+    style TEST fill:#e3f2fd
+</div>
+
+<h3>レイヤ分離の考え方</h3>
+<div class="mermaid">
+graph TB
+    subgraph AppLayer["アプリケーション層"]
+        direction LR
+        TEMP["temperature.c\n（純粋関数）"]
+        MON["temp_monitor.c\n（オーケストレータ）"]
+    end
+    subgraph HalLayer["HAL層（ハードウェア抽象化）"]
+        direction LR
+        ADC["hal_adc.c"]
+        GPIO["hal_gpio.c"]
+    end
+    subgraph HW_LAYER["ハードウェア"]
+        direction LR
+        SENSOR["温度センサ"]
+        LED_HW["LED"]
+    end
+    MON --> TEMP
+    MON --> ADC
+    MON --> GPIO
+    ADC --> SENSOR
+    GPIO --> LED_HW
+    style AppLayer fill:#e8f5e9,stroke:#2e7d32
+    style HalLayer fill:#fff3e0,stroke:#ef6c00
+    style HW_LAYER fill:#ffcdd2,stroke:#c62828
+</div>
+
+<div class="note">
+<strong>ポイント:</strong> アプリケーション層は HAL のヘッダファイル（インターフェース）のみに依存する。HAL の実装（.c）はリンク時に差し替え可能。
+</div>
+
+<h3>2.3 CMakeによるビルドシステム</h3>
+<h3>CMakeのビルドフロー</h3>
+<div class="mermaid">
+graph TD
+    ROOT_CM["CMakeLists.txt ルート\nenable_testing"] --> SRC_CMAKE["src/CMakeLists.txt\nAppLibrary + HalLibrary"]
+    ROOT_CM --> TEST_CMAKE["Test/CMakeLists.txt\nテストバイナリ"]
+    TEST_CMAKE --> FETCH["FetchContent\nGoogle Test v1.14.0\n自動ダウンロード"]
+    SRC_CMAKE --> APP_OBJ["AppLibrary\ntemperature.o, temp_monitor.o"]
+    SRC_CMAKE --> HAL_OBJ["HalLibrary\nhal_adc.o, hal_gpio.o"]
+    FETCH --> GTEST_LIB["gtest ライブラリ"]
+    TEST_CMAKE --> TEST1["test_temperature\n純粋関数テスト"]
+    TEST_CMAKE --> TEST2["test_temp_monitor\nFFF統合テスト"]
+    APP_OBJ --> TEST1
+    GTEST_LIB --> TEST1
+    GTEST_LIB --> TEST2
+    style ROOT_CM fill:#fff3e0
+    style FETCH fill:#e3f2fd
+    style TEST1 fill:#e8f5e9
+    style TEST2 fill:#e8f5e9
+</div>
+
+<h3>ルート CMakeLists.txt</h3>
+<pre><code>cmake_minimum_required(VERSION 3.29)
+project(MyMixedProject LANGUAGES C CXX)
+enable_testing()
+
+add_subdirectory(src)
+add_subdirectory(Test)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED YES)</code></pre>
+
+<div class="note">
+<strong>ポイント:</strong> <code>LANGUAGES C CXX</code> で、CとC++の両方を使うことを宣言。組み込みCのプロダクションコードはCで書き、テストコードはC++（Google Test）で書きます。
+</div>
+
+<h3>src/CMakeLists.txt</h3>
+<pre><code># === アプリケーション層 ===
+set(APP_SOURCES app/temperature.c app/temp_monitor.c)
+add_library(AppLibrary STATIC ${APP_SOURCES})
+target_include_directories(AppLibrary PUBLIC app hal)
+
+# === HAL 層 ===
+set(HAL_SOURCES hal/hal_adc.c hal/hal_gpio.c)
+add_library(HalLibrary STATIC ${HAL_SOURCES})
+target_include_directories(HalLibrary PUBLIC hal)
+
+target_link_libraries(AppLibrary PUBLIC HalLibrary)</code></pre>
+
+<h3>Test/CMakeLists.txt</h3>
+<pre><code>include(FetchContent)
+FetchContent_Declare(googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip)
+FetchContent_MakeAvailable(googletest)
+
+# 純粋関数テスト（フェイク不要）
+add_executable(test_temperature test_app.cpp)
+target_link_libraries(test_temperature gtest_main AppLibrary)
+gtest_discover_tests(test_temperature)
+
+# FFF 統合テスト（HAL をフェイクに差し替え）
+add_executable(test_temp_monitor test_drv.cpp)
+target_link_libraries(test_temp_monitor gtest_main)
+target_include_directories(test_temp_monitor PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/app ${CMAKE_SOURCE_DIR}/src/hal
+    ${CMAKE_CURRENT_SOURCE_DIR})
+target_sources(test_temp_monitor PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/app/temp_monitor.c
+    ${CMAKE_SOURCE_DIR}/src/app/temperature.c)
+gtest_discover_tests(test_temp_monitor)</code></pre>
+
+<div class="warn">
+<strong>重要:</strong> <code>test_temp_monitor</code> は HalLibrary をリンクしません。FFF がテストファイル内で HAL 関数のフェイク実装を生成するため、リンカエラーにならずにテストできます。
+</div>
+
+<h3>2.4 ホスト環境とターゲット環境の違い</h3>
+<div class="mermaid">
+graph LR
+    subgraph Host_ENV["🖥️ ホスト（PC / x86_64）"]
+        H_CC["gcc / g++"]
+        H_OS["Linux / macOS / Windows"]
+    end
+    subgraph Target_ENV["🔌 ターゲット（マイコン / ARM）"]
+        T_CC["arm-none-eabi-gcc"]
+        T_OS["ベアメタル / RTOS"]
+    end
+    style Host_ENV fill:#e8f5e9
+    style Target_ENV fill:#e3f2fd
+</div>
+
+<table>
+<tr><th>項目</th><th>ホスト</th><th>ターゲット</th></tr>
+<tr><td>コンパイラ</td><td>gcc / g++</td><td>arm-none-eabi-gcc 等</td></tr>
+<tr><td>メモリ</td><td>数GB</td><td>数KB〜数MB</td></tr>
+<tr><td>ペリフェラル</td><td>なし</td><td>ADC, GPIO, UART, SPI...</td></tr>
+<tr><td>テスト方法</td><td>Google Test + FFF</td><td>手動 / JTAG</td></tr>
+</table>
+
+<h3>意識すべき差異</h3>
+<ul>
+<li><strong>型サイズ</strong>: <code>stdint.h</code>（<code>uint16_t</code> 等）を使うことで差異を吸収</li>
+<li><strong>浮動小数点</strong>: FPUがないMCU向けに整数演算（×10 表現）を使用</li>
+<li><strong>エンディアン</strong>: リトルエンディアン/ビッグエンディアンの差に注意</li>
+</ul>
+
+<h3>2.5 ビルドと実行</h3>
+<pre><code>mkdir build && cd build
+cmake ..
+cmake --build .
+ctest --output-on-failure
+
+# 実行結果: 100% tests passed, 0 tests failed out of 16</code></pre>
+</section>
+
+<!-- ===== 第3章 ===== -->
+<section class="tab-content" id="ch3">
+<h2>第3章: Google Test の基本</h2>
+
+<h3>3.1 extern "C" と名前マングリング</h3>
+<p>C++ コンパイラは関数名を「名前マングリング」で装飾します（例: <code>add(int, int)</code> → <code>_Z3addii</code>）。<code>extern "C"</code> で「この関数はC言語の命名規則で探す」と指示する必要があります。</p>
+
+<div class="comparison">
+<div class="before-box">
+<strong>❌ これだとリンクエラー</strong>
+<pre><code>#include "temperature.h"</code></pre>
+</div>
+<div class="after-box">
+<strong>✅ extern "C" で解決</strong>
+<pre><code>extern "C" {
+#include "temperature.h"
+}</code></pre>
+</div>
+</div>
+
+<h3>3.2 TEST マクロ（最もシンプル）</h3>
+<pre><code>#include "gtest/gtest.h"
+
+extern "C" {
+#include "temperature.h"
+}
+
+TEST(TemperatureConvert, ZeroInput) {
+    EXPECT_EQ(0, temperature_convert(0));
+}</code></pre>
+<ul>
+<li>第1引数: テストスイート名（機能や関数の名前）</li>
+<li>第2引数: テストケース名（テストの目的）</li>
+</ul>
+
+<h3>3.3 TEST_F マクロ（フィクスチャ付き）</h3>
+<pre><code>class TemperatureConvertTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // 各テスト前に呼ばれる
+    }
+    void TearDown() override {
+        // 各テスト後に呼ばれる
+    }
+};
+
+TEST_F(TemperatureConvertTest, ZeroRawReturnsZero) {
+    EXPECT_EQ(0, temperature_convert(0));
+}
+
+TEST_F(TemperatureConvertTest, MaxRawValue) {
+    EXPECT_EQ(330, temperature_convert(4095));
+}</code></pre>
+
+<div class="mermaid">
+sequenceDiagram
+    participant GTest as Google Test
+    participant SetUp as SetUp()
+    participant TC as テストケース
+    participant TearDown as TearDown()
+    GTest->>SetUp: テスト前に呼び出し
+    SetUp->>TC: 初期化完了
+    TC->>TC: EXPECT_EQ 等でアサーション
+    TC->>TearDown: テスト完了
+    TearDown->>GTest: 後始末完了
+    Note over GTest: 次のテストケースへ
+</div>
+
+<h3>3.4 主要なアサーションマクロ</h3>
+<table>
+<tr><th>マクロ</th><th>意味</th><th>失敗時の動作</th></tr>
+<tr><td><code>EXPECT_EQ(expected, actual)</code></td><td>等しい</td><td>テスト続行</td></tr>
+<tr><td><code>EXPECT_NE(val1, val2)</code></td><td>等しくない</td><td>テスト続行</td></tr>
+<tr><td><code>EXPECT_GT(val1, val2)</code></td><td>val1 &gt; val2</td><td>テスト続行</td></tr>
+<tr><td><code>EXPECT_GE(val1, val2)</code></td><td>val1 &gt;= val2</td><td>テスト続行</td></tr>
+<tr><td><code>EXPECT_LT(val1, val2)</code></td><td>val1 &lt; val2</td><td>テスト続行</td></tr>
+<tr><td><code>EXPECT_LE(val1, val2)</code></td><td>val1 &lt;= val2</td><td>テスト続行</td></tr>
+<tr><td><code>EXPECT_TRUE(condition)</code></td><td>真</td><td>テスト続行</td></tr>
+<tr><td><code>EXPECT_FALSE(condition)</code></td><td>偽</td><td>テスト続行</td></tr>
+<tr><td><code>ASSERT_EQ(expected, actual)</code></td><td>等しい</td><td><strong>テスト中断</strong></td></tr>
+</table>
+
+<div class="note">
+<strong>EXPECT vs ASSERT:</strong> <code>EXPECT_*</code> は失敗してもテストを続行し、全ての失敗を報告します。<code>ASSERT_*</code> は失敗した時点でテストを中断します。
+</div>
+
+<h3>3.5 実例: 純粋関数のテスト</h3>
+<pre><code>// test_app.cpp — 純粋関数テスト（フェイク不要）
+#include "gtest/gtest.h"
+
+extern "C" {
+#include "temperature.h"
+}
+
+class TemperatureConvertTest : public ::testing::Test {};
+
+TEST_F(TemperatureConvertTest, ZeroRawReturnsZero) {
+    EXPECT_EQ(0, temperature_convert(0));
+}
+
+TEST_F(TemperatureConvertTest, MidRangeValue) {
+    int16_t result = temperature_convert(2048);
+    EXPECT_GE(result, 160);
+    EXPECT_LE(result, 170);
+}
+
+TEST_F(TemperatureConvertTest, MaxRawValue) {
+    EXPECT_EQ(330, temperature_convert(4095));
+}</code></pre>
+
+<div class="note">
+<strong>ポイント:</strong> 純粋関数は入力と出力だけを検証すればよいため、フェイクもモックも不要。これが「テスト容易性」の好例です。
+</div>
+
+<h3>3.6 テスト設計: 境界値</h3>
+<div class="mermaid">
+graph LR
+    subgraph Boundary["temperature_is_valid の境界値テスト"]
+        V0["0 → 無効❌\n（センサ断線）"]
+        V1["1 → 有効✅"]
+        V4094["4094 → 有効✅"]
+        V4095["4095 → 無効❌\n（センサ短絡）"]
+    end
+    style V0 fill:#ffcdd2
+    style V1 fill:#c8e6c9
+    style V4094 fill:#c8e6c9
+    style V4095 fill:#ffcdd2
+</div>
+
+<pre><code>TEST_F(TemperatureIsValidTest, ZeroIsInvalid) {
+    EXPECT_EQ(0, temperature_is_valid(0));
+}
+TEST_F(TemperatureIsValidTest, LowValidValue) {
+    EXPECT_EQ(1, temperature_is_valid(1));
+}
+TEST_F(TemperatureIsValidTest, HighValidValue) {
+    EXPECT_EQ(1, temperature_is_valid(4094));
+}
+TEST_F(TemperatureIsValidTest, MaxIsInvalid) {
+    EXPECT_EQ(0, temperature_is_valid(4095));
+}</code></pre>
+
+<h3>3.7 FIRST 原則</h3>
+<div class="mermaid">
+graph TD
+    FIRST["FIRST 原則"] --> F["F: Fast\n高速に実行できる"]
+    FIRST --> I["I: Independent\n他のテストに依存しない"]
+    FIRST --> R["R: Repeatable\n何度実行しても同じ結果"]
+    FIRST --> S["S: Self-validating\n結果が自動判定される"]
+    FIRST --> T["T: Timely\n実装前にテストを書く"]
+    style FIRST fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style F fill:#e8f5e9
+    style I fill:#e8f5e9
+    style R fill:#e8f5e9
+    style S fill:#e8f5e9
+    style T fill:#e8f5e9
+</div>
+
+<table>
+<tr><th>原則</th><th>説明</th><th>本教材での実践</th></tr>
+<tr><td>Fast</td><td>ミリ秒単位で完了</td><td>16テストが0.04秒で完了</td></tr>
+<tr><td>Independent</td><td>テスト間で状態を共有しない</td><td>SetUp() で毎回リセット</td></tr>
+<tr><td>Repeatable</td><td>環境に依存しない</td><td>HAL をフェイク化して環境非依存</td></tr>
+<tr><td>Self-validating</td><td>PASS/FAIL が自動判定</td><td>EXPECT_EQ 等で自動チェック</td></tr>
+<tr><td>Timely</td><td>実装前にテストを書く</td><td>TDD の Red-Green-Refactor</td></tr>
+</table>
+</section>
+
+<!-- ===== 第4章 ===== -->
+<section class="tab-content" id="ch4">
+<h2>第4章: FFF によるフェイク関数</h2>
+
+<h3>4.1 なぜフェイクが必要か</h3>
+<p>組み込みCでは、多くの関数がハードウェアにアクセスする「副作用」を持ちます。これらの関数はホスト環境では実行できません。</p>
+
+<div class="mermaid">
+graph LR
+    subgraph Problem["❌ テスト困難"]
+        TEST_P["テストコード"] --> MON_P["temp_monitor.c"]
+        MON_P --> ADC_P["hal_adc_read()"]
+        ADC_P --> REG_P["ADCレジスタ\n（PC上に存在しない）"]
+    end
+    subgraph Solution["✅ フェイクで解決"]
+        TEST_S["テストコード"] --> MON_S["temp_monitor.c"]
+        MON_S --> ADC_S["hal_adc_read()\nの FFF フェイク"]
+        ADC_S --> MEM_S["メモリ上の\n記録・返却"]
+    end
+    style Problem fill:#ffcdd2
+    style Solution fill:#e8f5e9
+</div>
+
+<h3>4.2 FFF の基本</h3>
+<pre><code>#include "fff.h"
+DEFINE_FFF_GLOBALS;  // テストファイルに1つ
+
+// void 関数のフェイク
+FAKE_VOID_FUNC(hal_gpio_write, uint8_t, uint8_t);
+FAKE_VOID_FUNC(hal_adc_init);
+
+// 戻り値あり関数のフェイク
+FAKE_VALUE_FUNC(uint16_t, hal_adc_read, uint8_t);
+FAKE_VALUE_FUNC(uint8_t, hal_gpio_read, uint8_t);</code></pre>
+
+<h3>FFF が生成するもの</h3>
+<div class="mermaid">
+graph TD
+    FFF_MACRO["FAKE_VALUE_FUNC(uint16_t, hal_adc_read, uint8_t)"] --> FUNC["関数実装\nuint16_t hal_adc_read(uint8_t arg0)"]
+    FFF_MACRO --> STRUCT["フェイク構造体\nhal_adc_read_fake"]
+    STRUCT --> RETURN["return_val\n戻り値の設定"]
+    STRUCT --> COUNT["call_count\n呼び出し回数"]
+    STRUCT --> ARG["arg0_val\n最後に渡された引数"]
+    STRUCT --> HIST["arg0_history[]\n引数の履歴"]
+    style FFF_MACRO fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style STRUCT fill:#fff3e0
+</div>
+
+<h3>4.3 テスト前のリセット</h3>
+<pre><code>class TempMonitorTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        RESET_FAKE(hal_adc_read);
+        RESET_FAKE(hal_adc_init);
+        RESET_FAKE(hal_gpio_write);
+        RESET_FAKE(hal_gpio_read);
+        FFF_RESET_HISTORY();
+    }
+};</code></pre>
+
+<div class="warn">
+<strong>重要:</strong> <code>RESET_FAKE</code> で各フェイクの呼び出しカウントや引数履歴をリセット。<code>FFF_RESET_HISTORY</code> で呼び出し順序の履歴もリセット。FIRST 原則の <strong>Independent</strong> を実現。
+</div>
+
+<h3>4.4 テストパターン</h3>
+
+<h3>パターン1: 戻り値の制御（スタブ）</h3>
+<pre><code>TEST_F(TempMonitorTest, NormalTemperature_LedOff) {
+    hal_adc_read_fake.return_val = 1000;  // ADC 1000 → 約8.0℃
+    int16_t result = temp_monitor_execute();
+    EXPECT_EQ(hal_gpio_write_fake.arg1_val, 0);  // LED OFF
+}</code></pre>
+
+<h3>パターン2: 呼び出し回数の検証（スパイ）</h3>
+<pre><code>TEST_F(TempMonitorTest, CallOrder_ReadThenWrite) {
+    hal_adc_read_fake.return_val = 2000;
+    temp_monitor_execute();
+    EXPECT_EQ(hal_adc_read_fake.call_count, 1);
+    EXPECT_EQ(hal_gpio_write_fake.call_count, 1);
+}</code></pre>
+
+<h3>パターン3: 引数の検証</h3>
+<pre><code>TEST_F(TempMonitorTest, HighTemperature_LedOn) {
+    hal_adc_read_fake.return_val = 4000;  // 高温
+    temp_monitor_execute();
+    EXPECT_EQ(hal_gpio_write_fake.arg0_val, ALARM_LED_PIN); // ピン13
+    EXPECT_EQ(hal_gpio_write_fake.arg1_val, 1);              // ON
+}</code></pre>
+
+<h3>パターン4: 異常系</h3>
+<pre><code>TEST_F(TempMonitorTest, SensorDisconnected_ReturnsError) {
+    hal_adc_read_fake.return_val = 0;  // センサ断線
+    int16_t result = temp_monitor_execute();
+    EXPECT_EQ(result, -9999);                        // エラー値
+    EXPECT_EQ(hal_gpio_write_fake.arg1_val, 1);      // アラーム ON
+}</code></pre>
+
+<h3>4.5 テストダブルの分類</h3>
+<div class="mermaid">
+graph TD
+    TD["テストダブル"] --> FAKE["フェイク\n簡易的な実装"]
+    TD --> STUB["スタブ\n固定値を返す"]
+    TD --> MOCK["モック\n呼び出しを検証"]
+    TD --> SPY["スパイ\n呼び出しを記録"]
+    style TD fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style FAKE fill:#e8f5e9
+    style STUB fill:#e8f5e9
+    style MOCK fill:#fff3e0
+    style SPY fill:#fff3e0
+</div>
+
+<table>
+<tr><th>種類</th><th>FFF での実現</th></tr>
+<tr><td>スタブ</td><td><code>hal_adc_read_fake.return_val = 1000;</code></td></tr>
+<tr><td>スパイ</td><td><code>EXPECT_EQ(hal_gpio_write_fake.call_count, 1);</code></td></tr>
+<tr><td>フェイク</td><td><code>hal_adc_read_fake.custom_fake = my_impl;</code></td></tr>
+</table>
+
+<h3>4.6 FFF vs 他のアプローチ</h3>
+<table>
+<tr><th>アプローチ</th><th>長所</th><th>短所</th></tr>
+<tr><td>FFF</td><td>ヘッダ1つで導入、C関数に対応</td><td>C++機能は限定的</td></tr>
+<tr><td>GMock</td><td>高機能、詳細な期待設定</td><td>C++クラス前提</td></tr>
+<tr><td>手動スタブ</td><td>自由度が高い</td><td>手書きの手間、バグ混入リスク</td></tr>
+<tr><td>リンカ差し替え</td><td>シンプル</td><td>ファイル管理が煩雑</td></tr>
+</table>
+</section>
+
+<!-- ===== 第5章 ===== -->
+<section class="tab-content" id="ch5">
+<h2>第5章: テスト容易性とベストプラクティス</h2>
+
+<h3>5.1 悪い例（Before）— テスト困難なコード</h3>
+
+<div class="danger">
+<strong>❌ Before: bad_temp.c — 全ての問題が詰まった典型例</strong>
+</div>
+
+<pre><code>/* ❌ グローバル変数 */
+volatile uint16_t g_last_raw_adc = 0;
+volatile int16_t g_last_temperature = 0;
+volatile uint8_t g_alarm_active = 0;
+
+void bad_read_and_check_temp(void) {
+    // ❌ 直接ハードウェアレジスタにアクセス
+    ADC1->CR2 |= ADC_CR2_SWSTART;
+    while (!(ADC1->SR & ADC_SR_EOC)) {}
+    g_last_raw_adc = ADC1->DR;
+
+    // ❌ ロジックとハードウェアが混在
+    int32_t mv = (int32_t)g_last_raw_adc * 3300 / 4095;
+    g_last_temperature = (int16_t)(mv / 10);
+
+    // ❌ 閾値チェックと GPIO 制御が一体化
+    if (g_last_temperature > 500) {
+        GPIOA->ODR |= (1 << 13);
+        g_alarm_active = 1;
+    } else {
+        GPIOA->ODR &= ~(1 << 13);
+        g_alarm_active = 0;
+    }
+}</code></pre>
+
+<div class="mermaid">
+graph TD
+    BAD["bad_read_and_check_temp()"] --> P1["❌ 直接レジスタアクセス"]
+    BAD --> P2["❌ グローバル変数"]
+    BAD --> P3["❌ ロジック混在"]
+    BAD --> P4["❌ テスト不可"]
+    P1 --> R1["移植性ゼロ"]
+    P2 --> R2["テスト間の干渉"]
+    P3 --> R3["バグの切り分け困難"]
+    P4 --> R4["実機でしかテストできない"]
+    style BAD fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style P1 fill:#ffcdd2
+    style P2 fill:#ffcdd2
+    style P3 fill:#ffcdd2
+    style P4 fill:#ffcdd2
+</div>
+
+<h3>5.2 良い例（After）— テスト容易な設計</h3>
+
+<div class="mermaid">
+graph TD
+    subgraph After_Design["✅ ベストプラクティス適用後"]
+        PURE_F["純粋関数（テスト容易）\ntemperature_convert()\ntemperature_is_over()\ntemperature_is_valid()"]
+        ORCH_F["オーケストレータ\ntemp_monitor_execute()"]
+        HAL_F["HAL関数（副作用を封じ込め）\nhal_adc_read()\nhal_gpio_write()"]
+    end
+    ORCH_F --> PURE_F
+    ORCH_F --> HAL_F
+    style PURE_F fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ORCH_F fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style HAL_F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+</div>
+
+<h3>✅ After: temperature.c（純粋関数）</h3>
+<pre><code>int16_t temperature_convert(uint16_t raw_adc) {
+    int32_t mv = (int32_t)raw_adc * 3300 / 4095;
+    return (int16_t)(mv / 10);
+}
+
+int temperature_is_over(int16_t temp_x10, int16_t threshold_x10) {
+    return (temp_x10 > threshold_x10) ? 1 : 0;
+}
+
+int temperature_is_valid(uint16_t raw_adc) {
+    if (raw_adc == 0 || raw_adc >= 4095) return 0;
+    return 1;
+}</code></pre>
+
+<h3>✅ After: temp_monitor.c（オーケストレータ）</h3>
+<pre><code>int16_t temp_monitor_execute(void) {
+    uint16_t raw = hal_adc_read(TEMP_ADC_CHANNEL);   /* 副作用 */
+    if (!temperature_is_valid(raw)) {                  /* 純粋関数 */
+        hal_gpio_write(ALARM_LED_PIN, 1);              /* 副作用 */
+        return -9999;
+    }
+    int16_t temp = temperature_convert(raw);           /* 純粋関数 */
+    int over = temperature_is_over(temp, ALARM_THRESHOLD_X10);
+    hal_gpio_write(ALARM_LED_PIN, (uint8_t)over);      /* 副作用 */
+    return temp;
+}</code></pre>
+
+<h3>5.3 Before vs After 比較</h3>
+<div class="comparison">
+<div class="before-box">
+<strong>❌ Before</strong>
+<ul>
+<li>直接レジスタ操作</li>
+<li>グローバル変数3つ</li>
+<li>1関数に全部入り</li>
+<li>実機でしかテスト不可</li>
+<li>STM32 専用</li>
+<li>テスト数: 0</li>
+</ul>
+</div>
+<div class="after-box">
+<strong>✅ After</strong>
+<ul>
+<li>HAL 関数経由</li>
+<li>グローバル変数なし</li>
+<li>変換、判定、制御を分離</li>
+<li>ホストで全テスト可能</li>
+<li>HAL差し替えで任意MCU対応</li>
+<li>テスト数: 16</li>
+</ul>
+</div>
+</div>
+
+<h3>5.4 純粋関数 vs 副作用 — 詳細</h3>
+
+<div class="comparison">
+<div class="after-box">
+<strong>✅ 純粋関数</strong>
+<p>同じ入力 → 常に同じ出力。外部状態を変更しない。テストが非常に簡単。</p>
+<pre><code>TEST(Convert, Zero) {
+    EXPECT_EQ(0, temperature_convert(0));
+}</code></pre>
+</div>
+<div class="before-box">
+<strong>⚠️ 副作用あり関数</strong>
+<p>ハードウェアを変更。実行環境に依存。テストにフェイクが必要。</p>
+<pre><code>hal_adc_read_fake.return_val = 0;
+temp_monitor_execute();
+EXPECT_EQ(hal_gpio_write_fake.arg1_val, 1);</code></pre>
+</div>
+</div>
+
+<h3>5.5 移植性の確保</h3>
+<div class="mermaid">
+graph TD
+    subgraph App_Layer["アプリケーション"]
+        MON_APP["temp_monitor.c"]
+    end
+    subgraph HAL_IF["HAL インターフェース (ヘッダ)"]
+        ADC_IF["hal_adc.h"]
+        GPIO_IF["hal_gpio.h"]
+    end
+    subgraph Impl_Layer["実装を差し替え"]
+        STM32["STM32 実装"]
+        NRF["nRF52 実装"]
+        HOST_FAKE["ホスト（FFF フェイク）"]
+    end
+    MON_APP --> ADC_IF
+    MON_APP --> GPIO_IF
+    ADC_IF --> STM32
+    ADC_IF --> NRF
+    ADC_IF --> HOST_FAKE
+    GPIO_IF --> STM32
+    GPIO_IF --> NRF
+    GPIO_IF --> HOST_FAKE
+    style App_Layer fill:#e3f2fd
+    style HAL_IF fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Impl_Layer fill:#fff3e0
+</div>
+
+<div class="note">
+<strong>ポイント:</strong> アプリケーションコードは HAL ヘッダ（.h）のみに依存。リンク時に実装（.c）を差し替えることで、STM32 でも nRF52 でもホストテストでも動作。
+</div>
+
+<h3>移植性を高めるコーディング規約</h3>
+<table>
+<tr><th>規約</th><th>理由</th><th>例</th></tr>
+<tr><td><code>stdint.h</code> の型を使う</td><td>型サイズの違いを吸収</td><td><code>uint16_t</code> not <code>unsigned short</code></td></tr>
+<tr><td>浮動小数点を避ける</td><td>FPU なしMCU対応</td><td><code>int16_t temp_x10</code> (×10表現)</td></tr>
+<tr><td>直接レジスタアクセスしない</td><td>移植性確保</td><td><code>hal_adc_read()</code> not <code>ADC1->DR</code></td></tr>
+<tr><td>グローバル変数を避ける</td><td>テスト容易性</td><td>引数と戻り値で受け渡し</td></tr>
+<tr><td><code>volatile</code> は HAL 内に限定</td><td>最適化の影響を限定</td><td>HAL 実装の中だけで使用</td></tr>
+</table>
+
+<h3>5.6 SOLID 原則（C言語への適用）</h3>
+
+<h3>S: 単一責任の原則（SRP）</h3>
+<div class="comparison">
+<div class="before-box">
+<strong>❌ 1関数に全部入り</strong>
+<pre><code>bad_read_and_check_temp()
+// 読み取り+変換+判定+制御</code></pre>
+</div>
+<div class="after-box">
+<strong>✅ 責任を分離</strong>
+<pre><code>temperature_convert()  // 変換のみ
+temperature_is_over()  // 判定のみ
+temperature_is_valid() // 検証のみ
+temp_monitor_execute() // 調整のみ</code></pre>
+</div>
+</div>
+
+<h3>D: 依存性逆転の原則（DIP）</h3>
+<div class="mermaid">
+graph TD
+    subgraph Bad_DIP["❌ Before: 直接依存"]
+        APP_B["アプリケーション"] --> HW_B["STM32レジスタ"]
+    end
+    subgraph Good_DIP["✅ After: 抽象に依存"]
+        APP_G["アプリケーション"] --> IF_G["HALインターフェース\n（hal_adc.h）"]
+        IF_G --> HW_G["HAL実装"]
+        IF_G --> FAKE_G["FFF フェイク"]
+    end
+    style Bad_DIP fill:#ffcdd2
+    style Good_DIP fill:#e8f5e9
+    style IF_G fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+</div>
+
+<h3>5.7 リファクタリングの手順</h3>
+<div class="mermaid">
+graph TD
+    S1["1️⃣ 純粋関数を抽出\n変換ロジックを独立関数に"] --> S2["2️⃣ HALを定義\nハードウェアアクセスをラップ"]
+    S2 --> S3["3️⃣ グローバル変数を排除\n引数と戻り値に置き換え"]
+    S3 --> S4["4️⃣ テストを書く\n純粋関数 → FFF統合"]
+    S4 --> S5["5️⃣ 全テストを実行\n16テスト全パス"]
+    style S1 fill:#e8f5e9
+    style S2 fill:#e8f5e9
+    style S3 fill:#e8f5e9
+    style S4 fill:#e3f2fd
+    style S5 fill:#c8e6c9
+</div>
+
+<div class="note">
+<strong>ポイント:</strong> リファクタリングは一度に全部やるのではなく、1ステップずつ進めてテストで確認しながら進める。
+</div>
+</section>
+
+<!-- ===== 第6章 ===== -->
+<section class="tab-content" id="ch6">
+<h2>第6章: ポートアダプタパターン</h2>
+
+<h3>6.1 ポートアダプタとは</h3>
+<p>ポートアダプタパターン（別名: ヘキサゴナルアーキテクチャ）は、アプリケーションのコアロジックを外部依存から分離する設計パターンです。</p>
+
+<div class="mermaid">
+graph TD
+    subgraph Core_PA["🎯 アプリケーションコア"]
+        LOGIC["ビジネスロジック\n（純粋関数）"]
+    end
+    subgraph Ports_PA["🔌 ポート（インターフェース）"]
+        PORT_IN["入力ポート\n（ADC読み取り）"]
+        PORT_OUT["出力ポート\n（GPIO制御）"]
+    end
+    subgraph Adapters_PA["🔧 アダプタ（実装）"]
+        ADP_STM["STM32アダプタ"]
+        ADP_NRF["nRF52アダプタ"]
+        ADP_TEST["テスト用フェイク"]
+    end
+    PORT_IN --> LOGIC
+    LOGIC --> PORT_OUT
+    ADP_STM --> PORT_IN
+    ADP_NRF --> PORT_IN
+    ADP_TEST --> PORT_IN
+    PORT_OUT --> ADP_STM
+    PORT_OUT --> ADP_NRF
+    PORT_OUT --> ADP_TEST
+    style Core_PA fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Ports_PA fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Adapters_PA fill:#fff3e0,stroke:#ef6c00
+</div>
+
+<h3>6.2 本教材での実現</h3>
+<table>
+<tr><th>概念</th><th>実装</th><th>ファイル</th></tr>
+<tr><td>アプリケーションコア</td><td>純粋関数群</td><td><code>temperature.c</code></td></tr>
+<tr><td>オーケストレータ</td><td>統合ロジック</td><td><code>temp_monitor.c</code></td></tr>
+<tr><td>ポート</td><td>HAL ヘッダ</td><td><code>hal_adc.h</code>, <code>hal_gpio.h</code></td></tr>
+<tr><td>実機アダプタ</td><td>HAL 実装</td><td><code>hal_adc.c</code>, <code>hal_gpio.c</code></td></tr>
+<tr><td>テストアダプタ</td><td>FFF フェイク</td><td><code>test_drv.cpp</code> 内</td></tr>
+</table>
+
+<div class="mermaid">
+graph TD
+    subgraph CoreFiles_PA["アプリケーションコア"]
+        TEMP_PA["temperature.c\n（純粋関数）"]
+        MON_PA["temp_monitor.c\n（オーケストレータ）"]
+    end
+    subgraph PortFiles_PA["ポート（インターフェース）"]
+        ADC_PA["hal_adc.h"]
+        GPIO_PA["hal_gpio.h"]
+    end
+    subgraph AdapterFiles_PA["アダプタ（実装）"]
+        ADC_C_PA["hal_adc.c（実機用）"]
+        GPIO_C_PA["hal_gpio.c（実機用）"]
+        TEST_FFF_PA["FFF フェイク（テスト用）"]
+    end
+    MON_PA --> TEMP_PA
+    MON_PA --> ADC_PA
+    MON_PA --> GPIO_PA
+    ADC_PA -.-> ADC_C_PA
+    ADC_PA -.-> TEST_FFF_PA
+    GPIO_PA -.-> GPIO_C_PA
+    GPIO_PA -.-> TEST_FFF_PA
+    style CoreFiles_PA fill:#e8f5e9,stroke:#2e7d32
+    style PortFiles_PA fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style AdapterFiles_PA fill:#fff3e0,stroke:#ef6c00
+</div>
+
+<h3>6.3 DIP との関係</h3>
+<div class="mermaid">
+graph LR
+    DIP_R["DIP\n（設計原則）"] -->|"アーキテクチャに適用"| PA_R["ポートアダプタ\n（設計パターン）"]
+    PA_R -->|"C言語で実現"| HAL_R["HAL + リンカ差し替え"]
+    style DIP_R fill:#e3f2fd
+    style PA_R fill:#e8f5e9
+    style HAL_R fill:#fff3e0
+</div>
+
+<h3>6.4 新しいターゲットへの移植手順</h3>
+<div class="mermaid">
+graph TD
+    ST1["1️⃣ HAL ヘッダを確認"] --> ST2["2️⃣ 新アダプタを作成\nhal_adc_nrf.c 等"]
+    ST2 --> ST3["3️⃣ CMake を修正"]
+    ST3 --> ST4["4️⃣ ホストテストは変更なし"]
+    ST4 --> ST5["5️⃣ ターゲットでビルド"]
+    style ST1 fill:#e3f2fd
+    style ST2 fill:#e8f5e9
+    style ST3 fill:#fff3e0
+    style ST4 fill:#e8f5e9
+    style ST5 fill:#e3f2fd
+</div>
+
+<div class="note">
+<strong>ポイント:</strong> アプリケーションコード（<code>temperature.c</code>, <code>temp_monitor.c</code>）は一切変更不要。HAL の実装ファイルだけを追加すれば、新しいハードウェアに対応可能。
+</div>
+
+<h3>6.5 テスト戦略</h3>
+<div class="mermaid">
+graph TD
+    subgraph TestStrategy_PA["テスト戦略"]
+        L1_PA["レベル1: 純粋関数テスト\n（フェイク不要）"]
+        L2_PA["レベル2: FFF統合テスト\n（HALをフェイク化）"]
+        L3_PA["レベル3: ターゲットテスト\n（実機で結合テスト）"]
+    end
+    L1_PA -->|"100%ホスト"| HOST1_PA["test_temperature\n11テスト"]
+    L2_PA -->|"100%ホスト"| HOST2_PA["test_temp_monitor\n5テスト"]
+    L3_PA -->|"実機"| TARGET_PA["手動テスト"]
+    style L1_PA fill:#e8f5e9
+    style L2_PA fill:#e3f2fd
+    style L3_PA fill:#fff3e0
+</div>
+
+<table>
+<tr><th>レベル</th><th>対象</th><th>方法</th><th>カバー範囲</th></tr>
+<tr><td>純粋関数テスト</td><td><code>temperature.c</code></td><td>Google Test のみ</td><td>ロジック100%</td></tr>
+<tr><td>FFF統合テスト</td><td><code>temp_monitor.c</code></td><td>Google Test + FFF</td><td>統合フロー</td></tr>
+<tr><td>ターゲットテスト</td><td>HAL 実装</td><td>実機 + JTAG</td><td>ハードウェア接続</td></tr>
+</table>
+
+<div class="note">
+<strong>目標:</strong> レベル1 と レベル2 でバグの90%以上を検出し、ターゲットテストは最小限にする。
+</div>
+</section>
+
+<!-- ===== 第7章 ===== -->
+<section class="tab-content" id="ch7">
+<h2>第7章: AI駆動開発とTDD</h2>
+
+<h3>7.1 なぜ AI 時代に TDD が重要か</h3>
+<div class="mermaid">
+graph TD
+    AI_CH["🤖 AI（LLM）の特性"] --> G1["✅ 大量のコードを高速に生成"]
+    AI_CH --> G2["✅ パターンに基づく実装"]
+    AI_CH --> G3["✅ ボイラープレートの自動化"]
+    AI_CH --> B1["⚠️ 文脈の取り違え"]
+    AI_CH --> B2["⚠️ エッジケースの見落とし"]
+    AI_CH --> B3["⚠️ ハルシネーション"]
+    style AI_CH fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style G1 fill:#e8f5e9
+    style G2 fill:#e8f5e9
+    style G3 fill:#e8f5e9
+    style B1 fill:#ffcdd2
+    style B2 fill:#ffcdd2
+    style B3 fill:#ffcdd2
+</div>
+
+<blockquote>
+<strong>TDD が AI の弱点を補う論理:</strong><br>
+前提1: AI は仕様を正しく理解しているとは限らない<br>
+前提2: テストは「仕様の形式化」である<br>
+前提3: テストが先にあれば、AI 生成コードの正しさを自動検証できる<br>
+<strong>結論: AI 駆動開発では TDD がさらに重要になる</strong>
+</blockquote>
+
+<div class="mermaid">
+graph LR
+    SPEC["📋 人間が仕様を定義"] --> TEST_F["✅ テストとして形式化"]
+    TEST_F --> AI_G["🤖 AI にコード生成を依頼"]
+    AI_G --> RUN_T["🏃 テスト実行"]
+    RUN_T -->|"PASS"| REVIEW["👁️ 人間がレビュー"]
+    RUN_T -->|"FAIL"| FIX["🔧 AI に修正を依頼"]
+    FIX --> RUN_T
+    REVIEW --> DONE_T["✅ 完了"]
+    style SPEC fill:#fff3e0
+    style TEST_F fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AI_G fill:#e3f2fd
+    style RUN_T fill:#e8f5e9
+</div>
+
+<h3>7.2 AI駆動開発のワークフロー</h3>
+
+<h3>ステップ1: 仕様をテストとして書く（人間）</h3>
+<pre><code>// 人間がまず「何が正しいか」をテストで定義
+TEST(TemperatureConvert, ZeroInput) {
+    EXPECT_EQ(0, temperature_convert(0));
+}
+TEST(TemperatureConvert, MaxInput) {
+    EXPECT_EQ(330, temperature_convert(4095));
+}
+TEST(TemperatureIsValid, SensorDisconnected) {
+    EXPECT_EQ(0, temperature_is_valid(0));
+}</code></pre>
+
+<h3>ステップ2: AI にコード生成を依頼</h3>
+<pre><code>【AI への指示例】
+以下のヘッダファイルの関数を実装してください。
+テストファイル test_app.cpp が全て PASS するようにしてください。
+
+条件:
+- 純粋関数として実装
+- stdint.h の型を使用
+- 浮動小数点は使用しない
+- ADC は 12bit (0-4095)、基準電圧 3.3V</code></pre>
+
+<h3>ステップ3: テスト実行 → レビュー</h3>
+<div class="mermaid">
+sequenceDiagram
+    participant Human as 👤 人間
+    participant AI_S as 🤖 AI
+    participant Test_S as ✅ テスト
+    Human->>Human: 仕様をテストとして記述
+    Human->>AI_S: テスト + ヘッダを渡す
+    AI_S->>AI_S: コード生成
+    AI_S->>Test_S: 生成コードをビルド
+    Test_S->>Test_S: テスト実行
+    alt 全テスト PASS
+        Test_S->>Human: 結果報告
+        Human->>Human: コードレビュー
+    else テスト FAIL
+        Test_S->>AI_S: 失敗結果を渡す
+        AI_S->>AI_S: 修正
+    end
+</div>
+
+<h3>7.3 人間 vs AI の責任分担</h3>
+<table>
+<tr><th>責任</th><th>人間</th><th>AI</th></tr>
+<tr><td>仕様の定義</td><td>✅ 主担当</td><td>参考意見</td></tr>
+<tr><td>テストの設計</td><td>✅ 主担当</td><td>補助生成</td></tr>
+<tr><td>コード生成</td><td>レビュー</td><td>✅ 主担当</td></tr>
+<tr><td>テスト実行</td><td>結果確認</td><td>✅ 自動実行</td></tr>
+<tr><td>アーキテクチャ決定</td><td>✅ 主担当</td><td>提案</td></tr>
+<tr><td>セキュリティ確認</td><td>✅ 最終確認</td><td>スキャン</td></tr>
+</table>
+
+<h3>7.4 人間が確認すべきチェックリスト</h3>
+<div class="mermaid">
+graph TD
+    CHECK_AI["人間が確認すべきポイント"] --> C1["✅ テストが仕様を正しく表現しているか"]
+    CHECK_AI --> C2["✅ 境界値テストがあるか"]
+    CHECK_AI --> C3["✅ 異常系テストがあるか"]
+    CHECK_AI --> C4["✅ 副作用が HAL に封じ込められているか"]
+    CHECK_AI --> C5["✅ グローバル変数を使っていないか"]
+    CHECK_AI --> C6["✅ stdint.h の型を使っているか"]
+    CHECK_AI --> C7["✅ 浮動小数点を避けているか"]
+    style CHECK_AI fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style C1 fill:#e8f5e9
+    style C2 fill:#e8f5e9
+    style C3 fill:#e8f5e9
+    style C4 fill:#e8f5e9
+    style C5 fill:#e8f5e9
+    style C6 fill:#e8f5e9
+    style C7 fill:#e8f5e9
+</div>
+
+<h3>7.5 AI に出す指示のベストプラクティス</h3>
+<div class="comparison">
+<div class="after-box">
+<strong>✅ 良い指示</strong>
+<pre><code>「temperature_convert 関数を実装。
+入力: uint16_t raw_adc (0-4095)
+出力: int16_t (温度×10)
+変換式: mv = raw * 3300 / 4095
+テスト test_app.cpp が全PASS」</code></pre>
+</div>
+<div class="before-box">
+<strong>❌ 悪い指示</strong>
+<pre><code>「温度変換する関数を作って」
+→ AI が勝手に浮動小数点を使ったり
+  型が合わなかったりする</code></pre>
+</div>
+</div>
+
+<h3>7.6 アンチパターン</h3>
+
+<div class="danger">
+<strong>❌ テストなしで AI にコード生成させる → バグ潜伏 → 実機で発覚</strong>
+</div>
+
+<div class="danger">
+<strong>❌ AI 生成テストを鵜呑みにする → 仕様を反映していない形骸化テスト</strong>
+</div>
+
+<h3>✅ 正しいフロー</h3>
+<div class="mermaid">
+graph LR
+    HS["👤 仕様定義"] --> HT["👤 テスト設計"]
+    HT --> AI_I["🤖 AI が実装"]
+    AI_I --> AT["✅ 自動テスト"]
+    AT --> HR["👤 人間レビュー"]
+    style HS fill:#fff3e0
+    style HT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AI_I fill:#e3f2fd
+    style AT fill:#e8f5e9
+    style HR fill:#fff3e0
+</div>
+
+<h3>7.7 まとめ: AI 時代の開発フロー</h3>
+<div class="mermaid">
+graph TD
+    START_AI["開始"] --> SA1["1️⃣ 仕様を明確化（人間）"]
+    SA1 --> SA2["2️⃣ テストを先に書く（人間+AI補助）"]
+    SA2 --> SA3["3️⃣ HAL/純粋関数の設計（人間）"]
+    SA3 --> SA4["4️⃣ AI に実装を依頼"]
+    SA4 --> SA5["5️⃣ テスト実行（自動）"]
+    SA5 -->|"FAIL"| SA6["6️⃣ AI に修正依頼"]
+    SA6 --> SA5
+    SA5 -->|"PASS"| SA7["7️⃣ 人間がレビュー"]
+    SA7 -->|"問題あり"| SA4
+    SA7 -->|"OK"| SA8["8️⃣ リファクタリング"]
+    SA8 --> SA5
+    style SA1 fill:#fff3e0
+    style SA2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SA3 fill:#fff3e0
+    style SA4 fill:#e3f2fd
+    style SA5 fill:#e8f5e9
+    style SA7 fill:#fff3e0
+    style SA8 fill:#bbdefb
+</div>
+</section>
+
+</div><!-- tab-container -->
+
+<!-- Glossary Button & Popup -->
+<button class="glossary-btn" id="glossaryBtn" title="用語集">📖</button>
+<div class="overlay" id="overlay"></div>
+<div class="glossary-popup" id="glossaryPopup">
+<div class="glossary-header">
+<input type="text" id="glossarySearch" placeholder="🔍 用語を検索...">
+<button class="glossary-close" id="glossaryClose">&times;</button>
+</div>
+<div class="glossary-body">
+<table>
+<thead><tr><th>用語</th><th>英語</th><th>説明</th></tr></thead>
+<tbody id="glossaryBody">
+<tr><td>TDD</td><td>Test-Driven Development</td><td>テスト駆動開発。テストを先に書き、実装を後から書く開発手法</td></tr>
+<tr><td>Red-Green-Refactor</td><td>—</td><td>TDDの3ステップ。テスト失敗(赤)→テスト成功(緑)→リファクタリング</td></tr>
+<tr><td>Google Test</td><td>—</td><td>Google製のC++テストフレームワーク。TEST, TEST_F, EXPECT_EQ 等を提供</td></tr>
+<tr><td>FFF</td><td>Fake Function Framework</td><td>C/C++用フェイク関数生成フレームワーク。ヘッダ1つで導入可能</td></tr>
+<tr><td>フェイク</td><td>Fake</td><td>テスト用の簡易実装。FFFが生成するスタブ+スパイの機能を持つ</td></tr>
+<tr><td>スタブ</td><td>Stub</td><td>固定値を返すテストダブル。FFFでは return_val で設定</td></tr>
+<tr><td>モック</td><td>Mock</td><td>期待される呼び出しを事前に設定し、違反を検出するテストダブル</td></tr>
+<tr><td>スパイ</td><td>Spy</td><td>呼び出しを記録するテストダブル。FFFでは call_count, arg0_val 等</td></tr>
+<tr><td>テストダブル</td><td>Test Double</td><td>テスト用代替実装の総称。フェイク、スタブ、モック、スパイの上位概念</td></tr>
+<tr><td>フィクスチャ</td><td>Test Fixture</td><td>テストの前提条件を共有する仕組み。TEST_F で使用</td></tr>
+<tr><td>アサーション</td><td>Assertion</td><td>テストの検証ポイント。EXPECT_EQ, ASSERT_TRUE 等</td></tr>
+<tr><td>純粋関数</td><td>Pure Function</td><td>同じ入力→常に同じ出力、外部状態を変更しない関数</td></tr>
+<tr><td>副作用</td><td>Side Effect</td><td>関数が外部状態を変更すること。ハードウェアアクセス、グローバル変数変更等</td></tr>
+<tr><td>HAL</td><td>Hardware Abstraction Layer</td><td>ハードウェア抽象化レイヤ。ハードウェアアクセスを関数でラップし差し替え可能に</td></tr>
+<tr><td>ポートアダプタ</td><td>Port-Adapter</td><td>コアロジックと外部依存を分離する設計パターン</td></tr>
+<tr><td>ヘキサゴナルアーキテクチャ</td><td>Hexagonal Architecture</td><td>ポートアダプタパターンの別名</td></tr>
+<tr><td>SOLID</td><td>—</td><td>オブジェクト指向設計の5原則。SRP, OCP, LSP, ISP, DIP</td></tr>
+<tr><td>SRP</td><td>Single Responsibility Principle</td><td>単一責任の原則。関数やモジュールは1つの責任のみ持つ</td></tr>
+<tr><td>OCP</td><td>Open-Closed Principle</td><td>開放閉鎖の原則。拡張に開いて修正に閉じる</td></tr>
+<tr><td>DIP</td><td>Dependency Inversion Principle</td><td>依存性逆転の原則。上位→抽象←下位の依存関係に</td></tr>
+<tr><td>extern "C"</td><td>—</td><td>C++からC関数を呼ぶための宣言。名前マングリングを抑制</td></tr>
+<tr><td>名前マングリング</td><td>Name Mangling</td><td>C++コンパイラが関数名を装飾する仕組み</td></tr>
+<tr><td>CMake</td><td>—</td><td>クロスプラットフォームのビルドシステム</td></tr>
+<tr><td>FetchContent</td><td>—</td><td>CMakeの機能。外部ライブラリを自動ダウンロード・ビルド</td></tr>
+<tr><td>ADC</td><td>Analog-to-Digital Converter</td><td>アナログ信号をデジタル値に変換するペリフェラル</td></tr>
+<tr><td>GPIO</td><td>General Purpose Input/Output</td><td>汎用入出力ピン。LED制御やスイッチ読み取りに使用</td></tr>
+<tr><td>ペリフェラル</td><td>Peripheral</td><td>マイコンの周辺機器。ADC, GPIO, UART, SPI 等</td></tr>
+<tr><td>LLM</td><td>Large Language Model</td><td>大規模言語モデル。ChatGPT, Claude 等のベースAI</td></tr>
+<tr><td>ハルシネーション</td><td>Hallucination</td><td>AIがもっともらしいが誤った情報を生成すること</td></tr>
+<tr><td>FIRST原則</td><td>—</td><td>良いテストの特性。Fast, Independent, Repeatable, Self-validating, Timely</td></tr>
+<tr><td>境界値テスト</td><td>Boundary Value Test</td><td>入力の境界（最小値、最大値等）をテストする手法</td></tr>
+<tr><td>リファクタリング</td><td>Refactoring</td><td>外部動作を変えずにコードの内部構造を改善すること</td></tr>
+<tr><td>オーケストレータ</td><td>Orchestrator</td><td>複数の関数を組み合わせて処理フローを制御する関数</td></tr>
+<tr><td>ベアメタル</td><td>Bare Metal</td><td>OSなしでマイコン上で直接動作するソフトウェア</td></tr>
+<tr><td>RTOS</td><td>Real-Time Operating System</td><td>リアルタイムOS。組み込み向けの軽量OS</td></tr>
+<tr><td>stdint.h</td><td>—</td><td>固定幅整数型（uint8_t, int16_t等）を定義するC標準ヘッダ</td></tr>
+<tr><td>volatile</td><td>—</td><td>コンパイラ最適化を抑制するC言語修飾子。レジスタアクセスに使用</td></tr>
+<tr><td>クロスコンパイラ</td><td>Cross Compiler</td><td>ホストと異なるアーキテクチャ向けコンパイラ(例: arm-none-eabi-gcc)</td></tr>
+<tr><td>エンディアン</td><td>Endianness</td><td>バイトの並び順。リトルエンディアンとビッグエンディアン</td></tr>
+<tr><td>FPU</td><td>Floating Point Unit</td><td>浮動小数点演算ユニット。ないMCUでは浮動小数点を避ける</td></tr>
+<tr><td>GMock</td><td>Google Mock</td><td>Google製モックフレームワーク。C++クラスのモック自動生成</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<script>
+mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
+
+/* Tab navigation */
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+        document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+        btn.classList.add('active');
+        var tab = document.getElementById(btn.dataset.tab);
+        tab.classList.add('active');
+        mermaid.run({ nodes: tab.querySelectorAll('.mermaid:not([data-processed])') });
+    });
+});
+
+/* Glossary popup */
+var glossaryBtn = document.getElementById('glossaryBtn');
+var glossaryPopup = document.getElementById('glossaryPopup');
+var glossaryClose = document.getElementById('glossaryClose');
+var overlay = document.getElementById('overlay');
+var glossarySearch = document.getElementById('glossarySearch');
+
+function openGlossary() {
+    glossaryPopup.classList.add('show');
+    overlay.classList.add('show');
+    glossarySearch.focus();
+}
+function closeGlossary() {
+    glossaryPopup.classList.remove('show');
+    overlay.classList.remove('show');
+    glossarySearch.value = '';
+    filterGlossary('');
+}
+glossaryBtn.addEventListener('click', openGlossary);
+glossaryClose.addEventListener('click', closeGlossary);
+overlay.addEventListener('click', closeGlossary);
+
+function filterGlossary(query) {
+    var rows = document.querySelectorAll('#glossaryBody tr');
+    var q = query.toLowerCase();
+    rows.forEach(function(row) {
+        var text = row.textContent.toLowerCase();
+        row.classList.toggle('hidden', q.length > 0 && text.indexOf(q) === -1);
+    });
+}
+glossarySearch.addEventListener('input', function() { filterGlossary(this.value); });
+
+/* Initial mermaid render for active tab */
+mermaid.run({ nodes: document.querySelectorAll('#ch1 .mermaid') });
+</script>
+
+</body>
+</html>
