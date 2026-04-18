@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>組み込みC テスト駆動開発 教材 — Google Test × AI駆動開発</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --primary: #1565c0;
+            --primary-light: #e3f2fd;
+            --secondary: #2e7d32;
+            --secondary-light: #e8f5e9;
+            --accent: #f9a825;
+            --accent-light: #fff8e1;
+            --danger: #c62828;
+            --danger-light: #ffebee;
+            --bg: #fafafa;
+            --surface: #ffffff;
+            --text: #212121;
+            --text-secondary: #616161;
+            --border: #e0e0e0;
+            --shadow: 0 2px 8px rgba(0,0,0,0.08);
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), #0d47a1);
+            color: white;
+            padding: 2rem 2rem 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+        .header p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border-bottom: 2px solid var(--border);
+            padding: 0 1rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .tab-btn {
+            padding: 0.8rem 1.2rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .tab-btn:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            font-weight: 700;
+        }
+        .tab-btn.glossary-btn {
+            margin-left: auto;
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .tab-btn.glossary-btn:hover {
+            background: var(--accent-light);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            max-width: 960px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Typography */
+        .tab-content h1 {
+            font-size: 1.6rem;
+            color: var(--primary);
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-light);
+        }
+        .tab-content h2 {
+            font-size: 1.3rem;
+            color: var(--text);
+            margin: 1.8rem 0 0.8rem;
+            padding-left: 0.8rem;
+            border-left: 4px solid var(--primary);
+        }
+        .tab-content h3 {
+            font-size: 1.1rem;
+            color: var(--text);
+            margin: 1.5rem 0 0.6rem;
+        }
+        .tab-content p {
+            margin: 0.6rem 0;
+        }
+        .tab-content ul, .tab-content ol {
+            margin: 0.6rem 0 0.6rem 1.5rem;
+        }
+        .tab-content li {
+            margin: 0.3rem 0;
+        }
+
+        /* Code blocks */
+        pre {
+            background: #263238;
+            color: #eeffff;
+            padding: 1rem 1.2rem;
+            border-radius: var(--radius);
+            overflow-x: auto;
+            margin: 0.8rem 0;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+        code {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+        }
+        p code, li code, td code {
+            background: #f0f0f0;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.88em;
+            color: #c62828;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.92rem;
+        }
+        thead {
+            background: var(--primary);
+            color: white;
+        }
+        th, td {
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+        tbody tr:nth-child(even) {
+            background: #f5f5f5;
+        }
+        tbody tr:hover {
+            background: var(--primary-light);
+        }
+
+        /* Mermaid */
+        .mermaid {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        /* Callout boxes */
+        .callout {
+            padding: 1rem 1.2rem;
+            border-radius: var(--radius);
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+        .callout-info {
+            background: var(--primary-light);
+            border-color: var(--primary);
+        }
+        .callout-success {
+            background: var(--secondary-light);
+            border-color: var(--secondary);
+        }
+        .callout-warning {
+            background: var(--accent-light);
+            border-color: var(--accent);
+        }
+        .callout-danger {
+            background: var(--danger-light);
+            border-color: var(--danger);
+        }
+        .callout strong {
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        /* Glossary Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 5vh;
+        }
+        .modal-overlay.visible {
+            display: flex;
+        }
+        .modal {
+            background: var(--surface);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2rem 1.5rem;
+            background: var(--primary);
+            color: white;
+        }
+        .modal-header h2 {
+            font-size: 1.2rem;
+            border: none;
+            padding: 0;
+            margin: 0;
+            color: white;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 0 0.3rem;
+            line-height: 1;
+        }
+        .modal-search {
+            padding: 0.8rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-search input {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .modal-search input:focus {
+            border-color: var(--primary);
+        }
+        .modal-body {
+            overflow-y: auto;
+            padding: 0.5rem 1.5rem 1.5rem;
+        }
+        .glossary-item {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .glossary-item:last-child {
+            border-bottom: none;
+        }
+        .glossary-term {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+        .glossary-english {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-left: 0.5rem;
+        }
+        .glossary-def {
+            margin-top: 0.3rem;
+            font-size: 0.92rem;
+            color: var(--text);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.3rem; }
+            .tab-btn { padding: 0.6rem 0.8rem; font-size: 0.8rem; }
+            .tab-content { padding: 0 1rem; }
+            .tab-content h1 { font-size: 1.3rem; }
+            .tab-content h2 { font-size: 1.1rem; }
+            pre { font-size: 0.8rem; }
+            table { font-size: 0.82rem; }
+        }
+
+        /* Print */
+        @media print {
+            .tab-nav, .header { display: none; }
+            .tab-content { display: block !important; max-width: 100%; page-break-after: always; }
+            .modal-overlay { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <h1>📘 組み込みC テスト駆動開発 教材</h1>
+    <p>Google Test × FFF × AI駆動開発 — ホスト環境テストで学ぶ設計原則</p>
+</header>
+
+<nav class="tab-nav" role="tablist">
+    <button class="tab-btn active" onclick="showTab('ch1')" role="tab">第1章 はじめに</button>
+    <button class="tab-btn" onclick="showTab('ch2')" role="tab">第2章 環境構築</button>
+    <button class="tab-btn" onclick="showTab('ch3')" role="tab">第3章 Google Test基本</button>
+    <button class="tab-btn" onclick="showTab('ch4')" role="tab">第4章 FFF・モック</button>
+    <button class="tab-btn" onclick="showTab('ch5')" role="tab">第5章 SOLID・DIP</button>
+    <button class="tab-btn" onclick="showTab('ch6')" role="tab">第6章 ポートアダプタ</button>
+    <button class="tab-btn" onclick="showTab('ch7')" role="tab">第7章 AI駆動×TDD</button>
+    <button class="tab-btn glossary-btn" onclick="toggleGlossary()" role="tab">📖 用語集</button>
+</nav>
+
+<!-- ==================== 第1章 ==================== -->
+<div id="ch1" class="tab-content active">
+
+<h1>第1章: はじめに — なぜ組み込みCにテスト駆動開発が必要か</h1>
+
+<h2>1.1 組み込み開発の課題</h2>
+<p>組み込みソフトウェア開発には、PC向けアプリケーション開発とは異なる特有の課題があります。</p>
+
+<h3>ターゲットとホストの違い</h3>
+<p>組み込みシステムでは、<strong>ターゲット</strong>（実際のハードウェア）と<strong>ホスト</strong>（開発用PC）という2つの環境が存在します。</p>
+
+<div class="mermaid">
+graph LR
+    subgraph HostEnv["ホスト環境 — 開発用PC"]
+        IDE["IDE / エディタ"]
+        Compiler["クロスコンパイラ"]
+        GTest["Google Test"]
+    end
+    subgraph TargetEnv["ターゲット環境 — 組み込みボード"]
+        MCU["マイコン MCU"]
+        HW["周辺ハードウェア"]
+        FW["ファームウェア"]
+    end
+    Compiler -->|"バイナリ転送"| MCU
+    IDE --> Compiler
+    GTest -->|"ホスト上で実行"| IDE
+</div>
+
+<p>従来の組み込み開発では、コードを書いてからターゲットにダウンロードし、実機で動作確認するまでのサイクルが長くなりがちです。この待ち時間が開発効率を大きく低下させます。</p>
+
+<h3>ホスト環境テストの利点</h3>
+<table>
+    <thead><tr><th>比較項目</th><th>ターゲット環境テスト</th><th>ホスト環境テスト</th></tr></thead>
+    <tbody>
+        <tr><td>実行速度</td><td>遅い（転送・起動に時間がかかる）</td><td>速い（即座に実行可能）</td></tr>
+        <tr><td>再現性</td><td>ハードウェア状態に依存</td><td>毎回同じ条件で実行可能</td></tr>
+        <tr><td>自動化</td><td>難しい</td><td>CI/CDに組み込みやすい</td></tr>
+        <tr><td>フィードバック</td><td>数分〜数十分</td><td>数秒</td></tr>
+    </tbody>
+</table>
+
+<h2>1.2 テスト駆動開発（TDD）とは</h2>
+<p>テスト駆動開発（TDD: Test-Driven Development）は、<strong>テストを先に書き、そのテストを通すコードを後から書く</strong>という開発手法です。</p>
+
+<h3>TDDの3つのステップ（Red-Green-Refactor）</h3>
+
+<div class="mermaid">
+graph TD
+    R["🔴 Red — 失敗するテストを書く"] --> G["🟢 Green — テストを通す最小のコードを書く"]
+    G --> RF["🔵 Refactor — コードを整理する"]
+    RF --> R
+    style R fill:#ffcccc,stroke:#cc0000
+    style G fill:#ccffcc,stroke:#00cc00
+    style RF fill:#ccccff,stroke:#0000cc
+</div>
+
+<ol>
+    <li><strong>Red（赤）</strong>: まず失敗するテストを書く。このテストは「こう動いてほしい」という仕様を表現する</li>
+    <li><strong>Green（緑）</strong>: テストを通す最小限のコードを書く。完璧でなくてよい</li>
+    <li><strong>Refactor（リファクタリング）</strong>: テストが通る状態を保ちながら、コードを整理・改善する</li>
+</ol>
+<p>この3ステップを短いサイクルで繰り返すことで、常にテストに裏付けられたコードが書かれます。</p>
+
+<h2>1.3 AI駆動開発とTDDの関係</h2>
+<p>近年、GitHub CopilotなどのAIツールがコード生成を支援しています。しかし、AIが生成したコードが正しいかどうかは、人間が検証しなければなりません。</p>
+
+<h3>AIがコードを生成する時代にTDDが必要な理由</h3>
+
+<div class="mermaid">
+graph TD
+    A["要件を整理する"] --> B["テストを書く — 期待動作を定義"]
+    B --> C["AIにコード生成を依頼"]
+    C --> D{"テストは通るか？"}
+    D -->|"Yes"| E["リファクタリング"]
+    D -->|"No"| F["AIに修正を依頼 or 手動修正"]
+    F --> D
+    E --> G["次の要件へ"]
+    style B fill:#ffffcc,stroke:#cccc00
+    style D fill:#ffeecc,stroke:#cc8800
+</div>
+
+<div class="callout callout-warning">
+    <strong>⚠️ 重要</strong>
+    テストがなければ、AIの出力を検証する手段がありません。TDDは、AI駆動開発においてさらに重要性を増しています。
+</div>
+
+<table>
+    <thead><tr><th>観点</th><th>テストなし</th><th>テストあり（TDD）</th></tr></thead>
+    <tbody>
+        <tr><td>AIの出力検証</td><td>目視確認のみ</td><td>自動テストで検証</td></tr>
+        <tr><td>仕様の明確化</td><td>曖昧なまま</td><td>テストが仕様書になる</td></tr>
+        <tr><td>リグレッション防止</td><td>気づかないうちに壊れる</td><td>テストが即座に検知</td></tr>
+        <tr><td>AIへの指示の質</td><td>漠然とした依頼</td><td>テストで具体的に定義</td></tr>
+    </tbody>
+</table>
+
+<h3>人間が注意すべきポイント</h3>
+<ol>
+    <li><strong>テストの設計は人間が行う</strong> — AIに「何をテストするか」を決めさせない</li>
+    <li><strong>境界条件を意識する</strong> — AIは典型的なケースは得意だが、境界条件を見落とすことがある</li>
+    <li><strong>アーキテクチャの判断は人間が行う</strong> — 依存関係の方向やモジュール分割はAIに丸投げしない</li>
+    <li><strong>生成コードのレビュー</strong> — AIの出力を鵜呑みにせず、テストで検証する</li>
+</ol>
+
+<h2>1.4 本教材の目標</h2>
+
+<div class="mermaid">
+graph TD
+    subgraph Goals["本教材で学ぶこと"]
+        A["Google Testの使い方"] --> B["FFF によるモック作成"]
+        B --> C["ホスト環境テストの実践"]
+        C --> D["設計原則 SOLID"]
+        D --> E["ポートアダプタパターン"]
+        E --> F["AI駆動でのTDD実践"]
+    end
+    style A fill:#e1f5fe
+    style B fill:#e1f5fe
+    style C fill:#e1f5fe
+    style D fill:#fff3e0
+    style E fill:#fff3e0
+    style F fill:#fce4ec
+</div>
+
+<ol>
+    <li><strong>Google Test</strong> を使った組み込みCコードのホスト環境テスト</li>
+    <li><strong>FFF（Fake Function Framework）</strong> を使ったモック・フェイク関数の作成</li>
+    <li><strong>SOLID原則</strong>、特に<strong>依存性逆転の原則（DIP）</strong>の理解と適用</li>
+    <li><strong>ポートアダプタパターン</strong>によるハードウェア依存の分離</li>
+    <li><strong>AI駆動開発</strong>でTDDを活用するための考え方と実践</li>
+</ol>
+
+</div>
+
+<!-- ==================== 第2章 ==================== -->
+<div id="ch2" class="tab-content">
+
+<h1>第2章: 環境構築 — AIを活用してテスト環境を整える</h1>
+
+<h2>2.1 必要なツール</h2>
+<table>
+    <thead><tr><th>ツール</th><th>用途</th><th>バージョン目安</th></tr></thead>
+    <tbody>
+        <tr><td>CMake</td><td>ビルドシステム</td><td>3.29以上</td></tr>
+        <tr><td>GCC/G++</td><td>C/C++コンパイラ</td><td>11以上</td></tr>
+        <tr><td>Google Test</td><td>テストフレームワーク</td><td>1.14.0</td></tr>
+        <tr><td>FFF</td><td>フェイク関数フレームワーク</td><td>最新</td></tr>
+        <tr><td>Git</td><td>バージョン管理</td><td>2.x</td></tr>
+        <tr><td>AIツール</td><td>コード生成支援</td><td>GitHub Copilot等</td></tr>
+    </tbody>
+</table>
+
+<h2>2.2 プロジェクト構成の理解</h2>
+
+<div class="mermaid">
+graph TD
+    Root["googletestTry/"] --> CMakeRoot["CMakeLists.txt\nルートのビルド定義"]
+    Root --> Src["src/"]
+    Root --> Test["Test/"]
+    Src --> APP["APP/"]
+    Src --> DRV["DRV/"]
+    Src --> CMakeSrc["CMakeLists.txt\nソースのビルド定義"]
+    APP --> APPINC["INC/add.h"]
+    APP --> APPSRC["SRC/add.c"]
+    DRV --> DRVINC["INC/sub.h"]
+    DRV --> DRVSRC["SRC/drv1.c"]
+    Test --> CMakeTest["CMakeLists.txt\nテストのビルド定義"]
+    Test --> TestApp["test_app.cpp"]
+    Test --> TestDrv["test_drv.cpp"]
+    Test --> FFF["fff.h"]
+    style CMakeRoot fill:#fff3e0
+    style CMakeSrc fill:#fff3e0
+    style CMakeTest fill:#fff3e0
+    style TestApp fill:#e8f5e9
+    style TestDrv fill:#e8f5e9
+    style FFF fill:#e8f5e9
+</div>
+
+<h3>ディレクトリの役割</h3>
+<ul>
+    <li><code>src/APP/</code>: アプリケーション層のコード。ビジネスロジックを担当</li>
+    <li><code>src/DRV/</code>: ドライバ層のコード。ハードウェアアクセスを担当</li>
+    <li><code>Test/</code>: テストコード。Google TestとFFFを使ったテストファイル</li>
+</ul>
+
+<div class="callout callout-info">
+    <strong>💡 設計のポイント</strong>
+    APP（アプリケーション層）とDRV（ドライバ層）の分離は、組み込み開発において非常に重要な設計判断です。後の章で学ぶポートアダプタパターンの基礎となります。
+</div>
+
+<h2>2.3 CMakeによるビルドシステム</h2>
+
+<h3>ルート CMakeLists.txt</h3>
+<pre><code>cmake_minimum_required(VERSION 3.29)
+project(MyMixedProject LANGUAGES C CXX)
+enable_testing()
+
+add_subdirectory(src)
+add_subdirectory(Test)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED YES)</code></pre>
+
+<div class="callout callout-info">
+    <strong>💡 ポイント</strong>
+    <code>LANGUAGES C CXX</code> で、CとC++の両方を使うことを宣言しています。組み込みCのプロダクションコードはCで書き、テストコードはC++（Google Test）で書く構成です。
+</div>
+
+<h3>テストの CMakeLists.txt</h3>
+<pre><code>include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+)
+FetchContent_MakeAvailable(googletest)</code></pre>
+
+<p><code>FetchContent</code> を使って Google Test を自動的にダウンロードします。事前のインストール作業は不要です。</p>
+
+<h2>2.4 AIを活用した環境構築</h2>
+
+<h3>AIへの依頼の仕方</h3>
+<p>環境構築は、AIに支援を依頼する好適な場面です。ただし、いくつかの注意点があります。</p>
+
+<div class="mermaid">
+graph TD
+    A["自分の環境情報を整理"] --> B["AIに具体的に依頼"]
+    B --> C["生成されたスクリプトを確認"]
+    C --> D{"理解できるか？"}
+    D -->|"Yes"| E["実行する"]
+    D -->|"No"| F["AIに説明を求める"]
+    F --> D
+    E --> G{"動作するか？"}
+    G -->|"Yes"| H["完了"]
+    G -->|"No"| I["エラーログをAIに提示"]
+    I --> B
+    style A fill:#e3f2fd
+    style C fill:#fff8e1
+    style D fill:#fce4ec
+</div>
+
+<h3>AIへの依頼の良い例・悪い例</h3>
+<div class="callout callout-success">
+    <strong>✅ 良い例</strong>
+    「CMake 3.29 + GCC 11 + Google Test 1.14.0 の環境で、C言語のプロダクションコード（src/以下）をC++のテストコード（Test/以下）からテストする CMakeLists.txt を作成してください。FetchContent で Google Test を取得する構成にしてください。」
+</div>
+<div class="callout callout-danger">
+    <strong>❌ 悪い例</strong>
+    「テストできるようにして」
+</div>
+
+<h3>人間が確認すべきポイント</h3>
+<ol>
+    <li><strong>コンパイラバージョン</strong> — ターゲットのCコンパイラと互換性があるC標準か</li>
+    <li><strong>リンク設定</strong> — テストバイナリにプロダクションコードが正しくリンクされているか</li>
+    <li><strong>インクルードパス</strong> — ヘッダファイルが正しく参照されているか</li>
+    <li><strong><code>extern "C"</code> の扱い</strong> — C++からCの関数を呼ぶ場合に必要</li>
+</ol>
+
+<h2>2.5 ビルドと実行</h2>
+<pre><code># ビルドディレクトリを作成
+mkdir build && cd build
+
+# CMakeの設定（ジェネレート）
+cmake ..
+
+# ビルド
+cmake --build .
+
+# テスト実行
+ctest --output-on-failure</code></pre>
+
+<h3>実行結果の例</h3>
+<pre><code>[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from add_test
+[ RUN      ] add_test.addOK
+[       OK ] add_test.addOK (0 ms)
+[ RUN      ] add_test.addNG
+[       OK ] add_test.addNG (0 ms)
+[----------] 2 tests from add_test (0 ms total)
+[==========] 2 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 2 tests.</code></pre>
+
+<div class="callout callout-success">
+    <strong>✅ ポイント</strong>
+    この<strong>即座のフィードバック</strong>こそが、ホスト環境テストの最大の利点です。
+</div>
+
+<h2>2.6 ホスト環境とターゲット環境の差異</h2>
+
+<div class="mermaid">
+graph LR
+    subgraph Host["ホスト環境 x86/x64"]
+        H1["int: 4バイト"]
+        H2["リトルエンディアン"]
+        H3["MMU あり"]
+        H4["標準ライブラリ 完全版"]
+    end
+    subgraph Target["ターゲット環境 ARM Cortex-M等"]
+        T1["int: 2 or 4バイト"]
+        T2["エンディアン混在の可能性"]
+        T3["MMU なし"]
+        T4["標準ライブラリ サブセット"]
+    end
+    H1 -.-|"要注意"| T1
+    H2 -.-|"要注意"| T2
+    H3 -.-|"要注意"| T3
+    H4 -.-|"要注意"| T4
+    style Host fill:#e3f2fd
+    style Target fill:#fff3e0
+</div>
+
+<table>
+    <thead><tr><th>差異ポイント</th><th>影響</th><th>対策</th></tr></thead>
+    <tbody>
+        <tr><td>整数型のサイズ</td><td><code>int</code> が 2byte と 4byte で異なる動作</td><td><code>stdint.h</code> の固定幅型を使用</td></tr>
+        <tr><td>エンディアン</td><td>バイトオーダーの違いで通信データが壊れる</td><td>エンディアン変換マクロを用意</td></tr>
+        <tr><td>メモリモデル</td><td>ヒープの使い方が異なる</td><td>組み込みでは <code>malloc</code> を避ける</td></tr>
+        <tr><td>ハードウェアアクセス</td><td>レジスタ操作がホストにない</td><td>モック/スタブで置き換え</td></tr>
+        <tr><td>割り込み</td><td>ホストにはない</td><td>テスト用の割り込みシミュレータを用意</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-warning">
+    <strong>⚠️ 重要</strong>
+    ホスト環境テストは万能ではありません。ロジックのテストには最適ですが、タイミングやハードウェア固有の挙動はターゲット環境でのテストが必要です。
+</div>
+
+</div>
+
+<!-- ==================== 第3章 ==================== -->
+<div id="ch3" class="tab-content">
+
+<h1>第3章: Google Testの基本 — テストの書き方を学ぶ</h1>
+
+<h2>3.1 Google Testとは</h2>
+<p>Google Test（gtest）は、Googleが開発したC++用テストフレームワークです。組み込みCのテストでは、テストコードをC++で書き、テスト対象のCコードをリンクして使います。</p>
+
+<h3>なぜC++のフレームワークでCをテストするのか</h3>
+
+<div class="mermaid">
+graph TD
+    A["C言語のプロダクションコード"] -->|"extern C で公開"| B["C++テストコード"]
+    B -->|"リンク"| C["Google Test フレームワーク"]
+    C --> D["テスト実行バイナリ"]
+    style A fill:#fff3e0
+    style B fill:#e8f5e9
+    style C fill:#e3f2fd
+    style D fill:#f3e5f5
+</div>
+
+<table>
+    <thead><tr><th>特徴</th><th>Google Test</th><th>CUnit/Unity</th></tr></thead>
+    <tbody>
+        <tr><td>モック機能</td><td>豊富（GMock, FFF連携）</td><td>限定的</td></tr>
+        <tr><td>テスト自動検出</td><td>あり（マクロで自動登録）</td><td>手動登録が必要</td></tr>
+        <tr><td>IDE連携</td><td>優れている</td><td>限定的</td></tr>
+        <tr><td>CI/CD連携</td><td>CTest/CDashと統合</td><td>追加設定が必要</td></tr>
+        <tr><td>情報量</td><td>多い（ドキュメント・コミュニティ）</td><td>少なめ</td></tr>
+    </tbody>
+</table>
+
+<h2>3.2 テストの構造</h2>
+
+<div class="mermaid">
+graph TD
+    TS["テストスイート — add_test"] --> TC1["テストケース — addOK"]
+    TS --> TC2["テストケース — addNG"]
+    TC1 --> A1["EXPECT_EQ(3, add(1,2))"]
+    TC1 --> A2["EXPECT_EQ(call_count, 1)"]
+    TC2 --> A3["EXPECT_EQ(call_count, 0)"]
+    TC2 --> A4["EXPECT_NE(5, add(1,2))"]
+    style TS fill:#e3f2fd
+    style TC1 fill:#e8f5e9
+    style TC2 fill:#e8f5e9
+    style A1 fill:#fff8e1
+    style A2 fill:#fff8e1
+    style A3 fill:#fff8e1
+    style A4 fill:#fff8e1
+</div>
+
+<ul>
+    <li><strong>テストスイート</strong>: 関連するテストケースをまとめるグループ（例: <code>add_test</code>）</li>
+    <li><strong>テストケース</strong>: 個々のテスト項目（例: <code>addOK</code>, <code>addNG</code>）</li>
+    <li><strong>アサーション</strong>: テスト内での検証（例: <code>EXPECT_EQ(3, add(1,2))</code>）</li>
+</ul>
+
+<h2>3.3 基本的なテストの書き方</h2>
+
+<h3>最もシンプルなテスト（TEST マクロ）</h3>
+<pre><code>#include "gtest/gtest.h"
+
+extern "C" {
+#include "add.h"
+}
+
+TEST(AddTest, PositiveNumbers) {
+    EXPECT_EQ(3, add(1, 2));
+}
+
+TEST(AddTest, NegativeNumbers) {
+    EXPECT_EQ(-3, add(-1, -2));
+}</code></pre>
+
+<div class="callout callout-info">
+    <strong>💡 extern "C" とは</strong>
+    C++コンパイラに「この中のヘッダはC言語の規約に従う」と伝えるための宣言です。これがないと、C++の名前マングリングにより、Cの関数がリンクできません。
+</div>
+
+<h3><code>extern "C"</code> の仕組み</h3>
+
+<div class="mermaid">
+graph LR
+    subgraph CPPWorld["C++の世界"]
+        CPP["test_app.cpp"]
+        CPP -->|"extern C"| LINK["リンカ"]
+    end
+    subgraph CWorld["Cの世界"]
+        CH["add.h"]
+        CC["add.c"]
+        CC --> OBJ["add.o"]
+    end
+    LINK --> OBJ
+    LINK --> EXE["テスト実行バイナリ"]
+    style CPP fill:#e8f5e9
+    style CH fill:#fff3e0
+    style CC fill:#fff3e0
+</div>
+
+<h2>3.4 フィクスチャを使ったテスト（TEST_F マクロ）</h2>
+<p>複数のテストケースで共通の初期化処理がある場合、<strong>フィクスチャ</strong>を使います。</p>
+
+<h3>フィクスチャの実行フロー</h3>
+
+<div class="mermaid">
+sequenceDiagram
+    participant F as フィクスチャ
+    participant T1 as テストケース1
+    participant T2 as テストケース2
+    F->>F: SetUp() 初期化
+    F->>T1: addOK テスト実行
+    T1->>F: 結果返却
+    F->>F: TearDown() 後始末
+    F->>F: SetUp() 初期化
+    F->>T2: addNG テスト実行
+    T2->>F: 結果返却
+    F->>F: TearDown() 後始末
+</div>
+
+<div class="callout callout-warning">
+    <strong>⚠️ 重要</strong>
+    <code>SetUp()</code> と <code>TearDown()</code> は<strong>各テストケースの前後に毎回実行</strong>されます。テスト間の状態が互いに影響しないことが保証されます。
+</div>
+
+<h3>本プロジェクトでの実例</h3>
+<pre><code>// test_app.cpp
+#include "gtest/gtest.h"
+#include "fff.h"
+DEFINE_FFF_GLOBALS;
+
+extern "C" {
+#include "../src/APP/INC/add.h"
+#include "../src/DRV/INC/sub.h"
+}
+
+// doubleForFake をフェイク関数として定義
+FAKE_VOID_FUNC(doubleForFake, int *);
+
+class add_test : public ::testing::Test {
+protected:
+    virtual void SetUp() {
+        // 各テストの前にフェイク関数の呼び出し回数をリセット
+        doubleForFake_fake.call_count = 0;
+    }
+    virtual void TearDown() {
+        // 後始末（今回は特に処理なし）
+    }
+};
+
+TEST_F(add_test, addOK) {
+    EXPECT_EQ(3, add(1, 2));       // add(1,2) の結果が 3 であること
+    EXPECT_EQ(doubleForFake_fake.call_count, 1); // doubleForFake が1回呼ばれたこと
+}
+
+TEST_F(add_test, addNG) {
+    EXPECT_EQ(doubleForFake_fake.call_count, 0); // まだ呼ばれていないこと
+    EXPECT_NE(5, add(1, 2));       // add(1,2) の結果が 5 ではないこと
+}</code></pre>
+
+<h2>3.5 アサーションの種類</h2>
+
+<table>
+    <thead><tr><th>アサーション</th><th>失敗時の動作</th><th>使いどころ</th></tr></thead>
+    <tbody>
+        <tr><td><code>EXPECT_*</code></td><td>テストを続行する</td><td>一般的に使用。複数の検証を1テストで行う場合</td></tr>
+        <tr><td><code>ASSERT_*</code></td><td>テストを即座に中断する</td><td>後続の検証が意味をなさない場合</td></tr>
+    </tbody>
+</table>
+
+<h3>よく使うアサーション一覧</h3>
+<table>
+    <thead><tr><th>マクロ</th><th>意味</th><th>使用例</th></tr></thead>
+    <tbody>
+        <tr><td><code>EXPECT_EQ(expected, actual)</code></td><td>等しい</td><td><code>EXPECT_EQ(3, add(1,2))</code></td></tr>
+        <tr><td><code>EXPECT_NE(val1, val2)</code></td><td>等しくない</td><td><code>EXPECT_NE(5, add(1,2))</code></td></tr>
+        <tr><td><code>EXPECT_TRUE(condition)</code></td><td>真である</td><td><code>EXPECT_TRUE(isReady())</code></td></tr>
+        <tr><td><code>EXPECT_FALSE(condition)</code></td><td>偽である</td><td><code>EXPECT_FALSE(hasError())</code></td></tr>
+        <tr><td><code>EXPECT_LT(val1, val2)</code></td><td>val1 &lt; val2</td><td><code>EXPECT_LT(0, getCount())</code></td></tr>
+        <tr><td><code>EXPECT_LE(val1, val2)</code></td><td>val1 &lt;= val2</td><td><code>EXPECT_LE(result, MAX)</code></td></tr>
+        <tr><td><code>EXPECT_GT(val1, val2)</code></td><td>val1 &gt; val2</td><td><code>EXPECT_GT(size, 0)</code></td></tr>
+        <tr><td><code>EXPECT_GE(val1, val2)</code></td><td>val1 &gt;= val2</td><td><code>EXPECT_GE(count, 1)</code></td></tr>
+    </tbody>
+</table>
+
+<h3>EXPECT vs ASSERT の使い分け</h3>
+
+<div class="mermaid">
+graph TD
+    A["アサーション失敗"] --> B{"後続の検証は意味があるか？"}
+    B -->|"意味がある"| C["EXPECT_* を使用\nテストを続行して複数の問題を一度に発見"]
+    B -->|"意味がない"| D["ASSERT_* を使用\nテストを即座に中断して無意味な検証を避ける"]
+    style C fill:#e8f5e9
+    style D fill:#ffebee
+</div>
+
+<p><strong>例</strong>: ポインタが NULL でないことを確認してから、その中身をチェックする場合</p>
+<pre><code>ASSERT_NE(nullptr, ptr);   // NULL なら後続は無意味なので ASSERT
+EXPECT_EQ(42, ptr->value); // ここは ASSERT の後なので安全</code></pre>
+
+<h2>3.6 テスト設計のポイント</h2>
+
+<h3>良いテストの特徴（F.I.R.S.T.原則）</h3>
+
+<div class="mermaid">
+graph LR
+    F["Fast\n高速"] --> I["Independent\n独立"]
+    I --> R["Repeatable\n再現可能"]
+    R --> S["Self-validating\n自己検証"]
+    S --> T["Timely\n適時"]
+    style F fill:#e3f2fd
+    style I fill:#e8f5e9
+    style R fill:#fff8e1
+    style S fill:#fce4ec
+    style T fill:#f3e5f5
+</div>
+
+<table>
+    <thead><tr><th>原則</th><th>意味</th><th>実践</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Fast</strong></td><td>テストは高速に実行できる</td><td>ホスト環境で実行、外部依存を排除</td></tr>
+        <tr><td><strong>Independent</strong></td><td>テスト間に依存がない</td><td>SetUp/TearDown で状態をリセット</td></tr>
+        <tr><td><strong>Repeatable</strong></td><td>何度実行しても同じ結果</td><td>環境に依存しないテスト設計</td></tr>
+        <tr><td><strong>Self-validating</strong></td><td>結果が自動的に判定される</td><td>アサーションで検証</td></tr>
+        <tr><td><strong>Timely</strong></td><td>実装と同時に書く</td><td>TDDではテストを先に書く</td></tr>
+    </tbody>
+</table>
+
+</div>
+
+<!-- ==================== 第4章 ==================== -->
+<div id="ch4" class="tab-content">
+
+<h1>第4章: FFF（Fake Function Framework）— モックとフェイクの実践</h1>
+
+<h2>4.1 なぜモックが必要か</h2>
+<p>組み込みCのコードは、ハードウェアにアクセスする関数や他のモジュールの関数に依存しています。ホスト環境では、これらの依存先を<strong>偽物（フェイク/モック）</strong>に置き換える必要があります。</p>
+
+<h3>依存関係の問題</h3>
+
+<div class="mermaid">
+graph TD
+    subgraph TestTarget["テスト対象"]
+        ADD["add.c — add関数"]
+    end
+    subgraph Dep["依存先"]
+        DFR["doubleForFake関数\nドライバ層"]
+    end
+    ADD -->|"呼び出し"| DFR
+    DFR -->|"ハードウェアアクセス?"| HW["ハードウェア"]
+    style ADD fill:#e8f5e9
+    style DFR fill:#ffebee
+    style HW fill:#ffcdd2
+</div>
+
+<p><code>add.c</code> の <code>add()</code> 関数は内部で <code>doubleForFake()</code> を呼んでいます。もし <code>doubleForFake()</code> がハードウェアにアクセスする関数だった場合、ホスト環境ではそのまま実行できません。</p>
+
+<h3>フェイクによる解決</h3>
+
+<div class="mermaid">
+graph TD
+    subgraph TestTarget2["テスト対象"]
+        ADD2["add.c — add関数"]
+    end
+    subgraph Fake["フェイク"]
+        FAKE["FFFで生成した\ndoubleForFake の偽物"]
+    end
+    ADD2 -->|"呼び出し"| FAKE
+    FAKE -->|"何もしない / 記録するだけ"| LOG["呼び出し記録"]
+    style ADD2 fill:#e8f5e9
+    style FAKE fill:#e3f2fd
+    style LOG fill:#f3e5f5
+</div>
+
+<h2>4.2 FFF（Fake Function Framework）とは</h2>
+<p>FFF は、C/C++ 向けのフェイク関数生成フレームワークです。ヘッダファイル1つ（<code>fff.h</code>）をインクルードするだけで使えます。</p>
+
+<table>
+    <thead><tr><th>特徴</th><th>説明</th></tr></thead>
+    <tbody>
+        <tr><td>ヘッダのみ</td><td><code>fff.h</code> をインクルードするだけで利用可能</td></tr>
+        <tr><td>マクロベース</td><td>マクロで簡単にフェイク関数を定義</td></tr>
+        <tr><td>呼び出し記録</td><td>呼び出し回数、引数の履歴を自動記録</td></tr>
+        <tr><td>戻り値制御</td><td>フェイク関数の戻り値をテストから指定可能</td></tr>
+        <tr><td>カスタム実装</td><td>フェイク関数にカスタムの振る舞いを設定可能</td></tr>
+    </tbody>
+</table>
+
+<h2>4.3 FFF の基本的な使い方</h2>
+
+<h3>セットアップ</h3>
+<pre><code>#include "gtest/gtest.h"
+#include "fff.h"
+DEFINE_FFF_GLOBALS;  // FFF のグローバル変数を定義（1ファイルに1回）</code></pre>
+
+<p><code>DEFINE_FFF_GLOBALS</code> は、FFF が内部で使用するグローバル変数を定義するマクロです。テストファイルの先頭で一度だけ呼び出します。</p>
+
+<h3>戻り値なし（void）関数のフェイク</h3>
+<pre><code>// 元の関数: void doubleForFake(int *a);
+FAKE_VOID_FUNC(doubleForFake, int *);</code></pre>
+
+<div class="mermaid">
+graph LR
+    MACRO["FAKE_VOID_FUNC\n(doubleForFake, int*)"] --> FUNC["フェイク関数\ndoubleForFake"]
+    MACRO --> STRUCT["構造体\ndoubleForFake_fake"]
+    STRUCT --> CC[".call_count\n呼び出し回数"]
+    STRUCT --> AH[".arg0_history\n引数の履歴"]
+    STRUCT --> CF[".custom_fake\nカスタム実装"]
+    style MACRO fill:#e3f2fd
+    style FUNC fill:#e8f5e9
+    style STRUCT fill:#fff8e1
+</div>
+
+<h3>戻り値あり関数のフェイク</h3>
+<pre><code>// 元の関数: int add(int a, int b);
+FAKE_VALUE_FUNC(int, add, int, int);</code></pre>
+
+<div class="mermaid">
+graph LR
+    MACRO2["FAKE_VALUE_FUNC\n(int, add, int, int)"] --> FUNC2["フェイク関数\nadd"]
+    MACRO2 --> STRUCT2["構造体\nadd_fake"]
+    STRUCT2 --> CC2[".call_count\n呼び出し回数"]
+    STRUCT2 --> RV[".return_val\n固定の戻り値"]
+    STRUCT2 --> RS[".return_val_seq\n戻り値のシーケンス"]
+    STRUCT2 --> AH2[".arg0_history\n引数の履歴"]
+    STRUCT2 --> CF2[".custom_fake\nカスタム実装"]
+    style MACRO2 fill:#e3f2fd
+    style FUNC2 fill:#e8f5e9
+    style STRUCT2 fill:#fff8e1
+</div>
+
+<h2>4.4 実践例：add() のテスト</h2>
+
+<h3>テスト対象コード（add.c）</h3>
+<pre><code>#include "add.h"
+#include "sub.h"
+
+int add(int a, int b) {
+    int k = 3;
+    doubleForFake(&k);  // ドライバ関数を呼んでいる
+    return a + b;
+}</code></pre>
+
+<p><code>add()</code> は内部で <code>doubleForFake()</code> を呼んでいます。テスト時はこの関数をフェイクに置き換えます。</p>
+
+<h3>テスト実行の流れ</h3>
+
+<div class="mermaid">
+sequenceDiagram
+    participant T as テストランナー
+    participant F as フィクスチャ SetUp
+    participant TC as テストケース addOK
+    participant ADD as add()
+    participant FAKE as doubleForFake フェイク
+    T->>F: SetUp() 呼び出し
+    F->>FAKE: call_count = 0 リセット
+    T->>TC: addOK テスト開始
+    TC->>ADD: add(1, 2) 呼び出し
+    ADD->>FAKE: doubleForFake(&k) 呼び出し
+    FAKE->>FAKE: call_count++ 記録のみ
+    ADD-->>TC: 3 を返却
+    TC->>TC: EXPECT_EQ(3, 結果) → 成功
+    TC->>TC: EXPECT_EQ(1, call_count) → 成功
+</div>
+
+<h2>4.5 実践例：sub() のテスト</h2>
+
+<h3>テスト対象コード（drv1.c）</h3>
+<pre><code>#include "sub.h"
+#include "add.h"
+
+int sub(int a, int b) {
+    a = add(a, b);     // add() に依存している
+    return a - 2 * b;
+}</code></pre>
+
+<p><code>sub()</code> は <code>add()</code> を呼んでいます。<code>sub()</code> を単独でテストするには、<code>add()</code> をフェイクに置き換えます。</p>
+
+<h3>戻り値制御の仕組み</h3>
+
+<div class="mermaid">
+graph TD
+    A["テストコード"] -->|"add_fake.return_val = 3"| B["add フェイク設定"]
+    C["sub 関数"] -->|"a = add(1, 2) を呼び出し"| D["add フェイク関数"]
+    D -->|"常に 3 を返す"| C
+    C -->|"3 - 2*2 = -1"| E["テスト結果: -1"]
+    style A fill:#e8f5e9
+    style B fill:#e3f2fd
+    style D fill:#e3f2fd
+    style E fill:#fff8e1
+</div>
+
+<div class="callout callout-info">
+    <strong>💡 ポイント</strong>
+    <code>add_fake.return_val = 3</code> を設定することで、<code>add()</code> が何を引数に呼ばれても常に <code>3</code> を返します。これにより、<code>sub()</code> のロジックだけを独立してテストできます。
+</div>
+
+<h2>4.6 FFF の高度な機能</h2>
+
+<h3>戻り値シーケンス</h3>
+<pre><code>int return_values[] = {1, 2, 3};
+SET_RETURN_SEQ(add, return_values, 3);
+
+// 1回目の呼び出し: 1 を返す
+// 2回目の呼び出し: 2 を返す
+// 3回目の呼び出し: 3 を返す</code></pre>
+
+<h3>カスタムフェイク</h3>
+<pre><code>int my_custom_add(int a, int b) {
+    return a * b;  // テスト用に掛け算にする
+}
+
+add_fake.custom_fake = my_custom_add;</code></pre>
+
+<h3>引数の履歴</h3>
+<pre><code>add(10, 20);
+add(30, 40);
+
+EXPECT_EQ(10, add_fake.arg0_history[0]);  // 1回目の第1引数
+EXPECT_EQ(20, add_fake.arg1_history[0]);  // 1回目の第2引数
+EXPECT_EQ(30, add_fake.arg0_history[1]);  // 2回目の第1引数</code></pre>
+
+<h2>4.7 モック・フェイク・スタブの違い</h2>
+
+<div class="mermaid">
+graph TD
+    TD["テストダブル — テスト用の偽物の総称"] --> STUB["スタブ\n固定値を返すだけ"]
+    TD --> FAKE_N["フェイク\n簡易的な実装を持つ"]
+    TD --> MOCK["モック\n呼び出しの検証も行う"]
+    TD --> SPY["スパイ\n本物を呼びつつ記録"]
+    TD --> DUMMY["ダミー\n引数を埋めるだけ"]
+    style TD fill:#e3f2fd
+    style STUB fill:#fff8e1
+    style FAKE_N fill:#e8f5e9
+    style MOCK fill:#fce4ec
+    style SPY fill:#f3e5f5
+    style DUMMY fill:#efebe9
+</div>
+
+<table>
+    <thead><tr><th>種類</th><th>説明</th><th>FFFでの対応</th></tr></thead>
+    <tbody>
+        <tr><td><strong>スタブ</strong></td><td>固定値を返す</td><td><code>return_val</code> の設定</td></tr>
+        <tr><td><strong>フェイク</strong></td><td>簡易実装を持つ</td><td><code>custom_fake</code> で実装</td></tr>
+        <tr><td><strong>モック</strong></td><td>呼び出しを検証する</td><td><code>call_count</code>, <code>arg_history</code> で検証</td></tr>
+        <tr><td><strong>スパイ</strong></td><td>本物を呼びつつ記録</td><td><code>custom_fake</code> で本物を呼ぶ</td></tr>
+        <tr><td><strong>ダミー</strong></td><td>引数を満たすためだけに存在</td><td>引数なしのフェイク</td></tr>
+    </tbody>
+</table>
+
+</div>
+
+<!-- ==================== 第5章 ==================== -->
+<div id="ch5" class="tab-content">
+
+<h1>第5章: SOLID原則と依存性逆転 — テストしやすい設計とは</h1>
+
+<h2>5.1 SOLID原則の概要</h2>
+
+<div class="mermaid">
+graph TD
+    SOLID["SOLID原則"] --> S["S: 単一責任の原則\nSingle Responsibility"]
+    SOLID --> O["O: 開放閉鎖の原則\nOpen-Closed"]
+    SOLID --> L["L: リスコフの置換原則\nLiskov Substitution"]
+    SOLID --> I["I: インターフェース分離の原則\nInterface Segregation"]
+    SOLID --> D["D: 依存性逆転の原則\nDependency Inversion"]
+    style SOLID fill:#e3f2fd
+    style S fill:#e8f5e9
+    style O fill:#fff8e1
+    style L fill:#fce4ec
+    style I fill:#f3e5f5
+    style D fill:#ffccbc,stroke:#ff5722,stroke-width:3px
+</div>
+
+<p>本教材では特に<strong>D（依存性逆転の原則：DIP）</strong>に注目しますが、まず各原則を組み込みCの文脈で概観します。</p>
+
+<h2>5.2 各原則の組み込みCでの適用</h2>
+
+<h3>S: 単一責任の原則（SRP）</h3>
+<blockquote>「モジュールは、変更の理由を1つだけ持つべきである」</blockquote>
+
+<div class="mermaid">
+graph LR
+    subgraph Bad["❌ 悪い例"]
+        BAD["sensor_manager.c\nセンサー読み取り\n+ データ変換\n+ UART送信\n+ エラーログ"]
+    end
+    subgraph Good["✅ 良い例"]
+        G1["sensor_read.c\nセンサー読み取り"]
+        G2["data_convert.c\nデータ変換"]
+        G3["uart_send.c\nUART送信"]
+        G4["error_log.c\nエラーログ"]
+    end
+    style BAD fill:#ffebee
+    style G1 fill:#e8f5e9
+    style G2 fill:#e8f5e9
+    style G3 fill:#e8f5e9
+    style G4 fill:#e8f5e9
+</div>
+
+<h3>O: 開放閉鎖の原則（OCP）</h3>
+<blockquote>「拡張に対して開いており、修正に対して閉じているべきである」</blockquote>
+
+<div class="mermaid">
+graph TD
+    subgraph FP["関数ポインタで拡張"]
+        IF["インターフェース\n関数ポインタテーブル"]
+        IF --> IMPL1["UART実装"]
+        IF --> IMPL2["SPI実装"]
+        IF --> IMPL3["将来の追加も\n既存コード変更不要"]
+    end
+    style IF fill:#e3f2fd
+    style IMPL1 fill:#e8f5e9
+    style IMPL2 fill:#e8f5e9
+    style IMPL3 fill:#fff8e1
+</div>
+
+<p>C言語ではインターフェースや継承が言語機能として存在しませんが、<strong>関数ポインタ</strong>を使うことで同様の柔軟性を実現できます。</p>
+
+<h3>L: リスコフの置換原則（LSP）</h3>
+<blockquote>「基底型のオブジェクトを派生型のオブジェクトで置き換えても、プログラムの正しさが保たれるべきである」</blockquote>
+<p>C言語ではクラス階層がありませんが、関数ポインタのテーブル（≒インターフェース）を「基底型」と見なせば、どの実装に差し替えても同じ契約を満たすべきという原則が適用できます。</p>
+
+<h3>I: インターフェース分離の原則（ISP）</h3>
+<blockquote>「クライアントが使わないメソッドに依存させてはならない」</blockquote>
+
+<div class="mermaid">
+graph TD
+    subgraph BadISP["❌ 悪い例"]
+        FAT["巨大ヘッダ hal.h\nGPIO + UART + SPI + I2C + ADC"]
+        C1["gpio_app.c"] --> FAT
+        C2["uart_app.c"] --> FAT
+    end
+    subgraph GoodISP["✅ 良い例"]
+        H1["hal_gpio.h"]
+        H2["hal_uart.h"]
+        H3["hal_spi.h"]
+        C3["gpio_app.c"] --> H1
+        C4["uart_app.c"] --> H2
+    end
+    style FAT fill:#ffebee
+    style H1 fill:#e8f5e9
+    style H2 fill:#e8f5e9
+    style H3 fill:#e8f5e9
+</div>
+
+<h3>D: 依存性逆転の原則（DIP）</h3>
+<blockquote>「上位モジュールは下位モジュールに依存すべきではない。両者は抽象に依存すべきである」</blockquote>
+<p>この原則は、テスト可能な組み込みコード設計の<strong>核心</strong>です。</p>
+
+<h2>5.3 依存性逆転の原則（DIP）を深掘りする</h2>
+
+<h3>DIPなし — 従来の設計</h3>
+<div class="mermaid">
+graph TD
+    subgraph NoDIP["DIPなし — 従来の設計"]
+        APP1["APP層 — add.c"] -->|"直接依存"| DRV1["DRV層 — drv1.c"]
+        DRV1 -->|"直接アクセス"| HW1["ハードウェア"]
+    end
+    style APP1 fill:#e8f5e9
+    style DRV1 fill:#ffebee
+    style HW1 fill:#ffcdd2
+</div>
+
+<h3>DIPあり — 逆転した設計</h3>
+<div class="mermaid">
+graph TD
+    subgraph WithDIP["DIPあり — 逆転した設計"]
+        APP2["APP層 — add.c"] -->|"抽象に依存"| IF2["抽象 — インターフェース\n関数宣言ヘッダ"]
+        DRV2["DRV層 — drv1.c"] -->|"抽象を実装"| IF2
+        FAKE2["フェイク — テスト用実装"] -->|"抽象を実装"| IF2
+    end
+    style APP2 fill:#e8f5e9
+    style IF2 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style DRV2 fill:#fff3e0
+    style FAKE2 fill:#f3e5f5
+</div>
+
+<div class="callout callout-info">
+    <strong>💡 依存の方向が逆転</strong>
+    APP層は「抽象（ヘッダ＝インターフェース）」に依存し、DRV層もフェイクも同じ抽象を実装します。テスト時はフェイクに、本番時は実ドライバに切り替え可能になります。
+</div>
+
+<h2>5.4 C言語でのDIP実現パターン</h2>
+
+<h3>パターン1: ヘッダファイルによる宣言と分離</h3>
+<div class="mermaid">
+graph TD
+    H["driver_if.h\nvoid write_register(uint32_t addr, uint32_t val)"]
+    REAL["driver_real.c\n本番用実装"]
+    FAKEIMPL["driver_fake.c\nテスト用実装"]
+    H -->|"実装"| REAL
+    H -->|"実装"| FAKEIMPL
+    APP["app.c"] -->|"インクルード"| H
+    style H fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style REAL fill:#fff3e0
+    style FAKEIMPL fill:#f3e5f5
+    style APP fill:#e8f5e9
+</div>
+
+<h3>パターン2: 関数ポインタによる実行時切り替え</h3>
+<pre><code>// インターフェース定義
+typedef struct {
+    void (*write)(uint32_t addr, uint32_t val);
+    uint32_t (*read)(uint32_t addr);
+} DriverInterface;
+
+// アプリケーション層 — 抽象に依存
+void app_process(const DriverInterface *drv) {
+    drv->write(0x1000, 0xFF);
+    uint32_t val = drv->read(0x1000);
+}</code></pre>
+
+<h3>パターン3: コンパイルスイッチによる切り替え</h3>
+<pre><code>#ifdef UNIT_TEST
+    #include "driver_fake.h"
+#else
+    #include "driver_real.h"
+#endif</code></pre>
+
+<h2>5.5 DIPとテストの関係</h2>
+<div class="mermaid">
+graph LR
+    subgraph Testability["テストの容易さ"]
+        L1["低い"] --> L2["中程度"] --> L3["高い"]
+    end
+    subgraph DIPLevel["DIPの適用度合い"]
+        D1["直接依存"] --> D2["ヘッダ分離"]
+        D2 --> D3["関数ポインタ"]
+    end
+    D1 -.- L1
+    D2 -.- L2
+    D3 -.- L3
+    style L1 fill:#ffebee
+    style L2 fill:#fff8e1
+    style L3 fill:#e8f5e9
+    style D1 fill:#ffebee
+    style D2 fill:#fff8e1
+    style D3 fill:#e8f5e9
+</div>
+
+<p>本教材のプロジェクトでは、「ヘッダ分離 + FFFによるリンク時切り替え」を採用しています。これは組み込みCにおいて最も実用的なバランスです。</p>
+
+</div>
+
+<!-- ==================== 第6章 ==================== -->
+<div id="ch6" class="tab-content">
+
+<h1>第6章: ポートアダプタパターン — ハードウェア依存を分離する</h1>
+
+<h2>6.1 ポートアダプタパターンとは</h2>
+<p>ポートアダプタパターン（別名: ヘキサゴナルアーキテクチャ）は、アプリケーションの核心ロジックを外部の技術的詳細から分離する設計パターンです。</p>
+
+<div class="mermaid">
+graph TD
+    subgraph External["外部の世界"]
+        HW["ハードウェア\nGPIO, UART, SPI..."]
+        UI["ユーザーインターフェース"]
+        DB["データ保存\nEEPROM, Flash..."]
+    end
+    subgraph Adapters["アダプタ層"]
+        A1["GPIOアダプタ"]
+        A2["UARTアダプタ"]
+        A3["Flashアダプタ"]
+    end
+    subgraph Ports["ポート — インターフェース"]
+        P1["出力ポート\n関数宣言ヘッダ"]
+        P2["入力ポート\nコールバック定義"]
+    end
+    subgraph Core["アプリケーションコア"]
+        CORE["ビジネスロジック\nハードウェア非依存"]
+    end
+    HW --- A1
+    HW --- A2
+    HW --- A3
+    A1 --- P1
+    A2 --- P1
+    A3 --- P1
+    P1 --- CORE
+    P2 --- CORE
+    style CORE fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style P1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A1 fill:#fff3e0
+    style A2 fill:#fff3e0
+    style A3 fill:#fff3e0
+    style HW fill:#ffebee
+</div>
+
+<table>
+    <thead><tr><th>用語</th><th>説明</th><th>C言語での実現</th></tr></thead>
+    <tbody>
+        <tr><td><strong>ポート</strong></td><td>アプリケーションコアが外部と通信するためのインターフェース</td><td>関数宣言を含むヘッダファイル（.h）</td></tr>
+        <tr><td><strong>アダプタ</strong></td><td>ポートの具体的な実装</td><td>そのヘッダを実装する .c ファイル</td></tr>
+        <tr><td><strong>アプリケーションコア</strong></td><td>ビジネスロジック本体。外部に依存しない</td><td>ポートのヘッダのみをインクルード</td></tr>
+    </tbody>
+</table>
+
+<h2>6.2 組み込みCでの適用</h2>
+
+<h3>従来の設計（ポートアダプタなし）</h3>
+<div class="mermaid">
+graph TD
+    subgraph BadDesign["❌ 問題のある設計"]
+        APP["app.c — 温度監視ロジック"]
+        APP -->|"直接呼び出し"| ADC["adc_read 関数\nADCレジスタに直接アクセス"]
+        APP -->|"直接呼び出し"| UART["uart_send 関数\nUARTレジスタに直接アクセス"]
+        APP -->|"直接呼び出し"| GPIO["gpio_set 関数\nGPIOレジスタに直接アクセス"]
+    end
+    style APP fill:#ffebee
+    style ADC fill:#ffcdd2
+    style UART fill:#ffcdd2
+    style GPIO fill:#ffcdd2
+</div>
+
+<h3>ポートアダプタ適用後</h3>
+<div class="mermaid">
+graph TD
+    subgraph AppCore2["アプリケーションコア"]
+        APP2["app.c\n温度監視ロジック"]
+    end
+    subgraph PortDef["ポート — ヘッダファイル"]
+        SP["sensor_port.h\nint read_temperature(void)"]
+        CP["comm_port.h\nvoid send_alert(const char *msg)"]
+        OP["output_port.h\nvoid set_alarm(bool on)"]
+    end
+    subgraph ProdAdapters["本番アダプタ"]
+        AA["adc_adapter.c"]
+        UA["uart_adapter.c"]
+        GA["gpio_adapter.c"]
+    end
+    subgraph TestAdapters["テスト用アダプタ"]
+        FS["fake_sensor.c"]
+        FC["fake_comm.c"]
+        FO["fake_output.c"]
+    end
+    APP2 -->|"インクルード"| SP
+    APP2 -->|"インクルード"| CP
+    APP2 -->|"インクルード"| OP
+    AA -.->|"実装"| SP
+    UA -.->|"実装"| CP
+    GA -.->|"実装"| OP
+    FS -.->|"フェイク実装"| SP
+    FC -.->|"フェイク実装"| CP
+    FO -.->|"フェイク実装"| OP
+    style APP2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style SP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style CP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style OP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style AA fill:#fff3e0
+    style UA fill:#fff3e0
+    style GA fill:#fff3e0
+    style FS fill:#f3e5f5
+    style FC fill:#f3e5f5
+    style FO fill:#f3e5f5
+</div>
+
+<h2>6.3 本プロジェクトでのポートアダプタ</h2>
+
+<div class="mermaid">
+graph TD
+    subgraph AppCore3["アプリケーションコア"]
+        ADDC["add.c — 加算ロジック"]
+    end
+    subgraph PortDef2["ポート"]
+        SUBH["sub.h\nvoid doubleForFake(int *a)\nint sub(int a, int b)"]
+    end
+    subgraph ProdAdapter2["本番アダプタ"]
+        DRV1["drv1.c\ndoubleForFake の本番実装"]
+    end
+    subgraph TestAdapter2["テスト用アダプタ — FFF"]
+        FAKEDEF["FAKE_VOID_FUNC\n(doubleForFake, int*)\nFFF が自動生成"]
+    end
+    ADDC -->|"インクルード"| SUBH
+    DRV1 -.->|"実装"| SUBH
+    FAKEDEF -.->|"フェイク実装"| SUBH
+    style ADDC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SUBH fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style DRV1 fill:#fff3e0
+    style FAKEDEF fill:#f3e5f5
+</div>
+
+<table>
+    <thead><tr><th>要素</th><th>ポートアダプタでの役割</th><th>本プロジェクトでの対応</th></tr></thead>
+    <tbody>
+        <tr><td>アプリケーションコア</td><td>ビジネスロジック</td><td><code>add.c</code>（加算処理）</td></tr>
+        <tr><td>ポート</td><td>インターフェース定義</td><td><code>sub.h</code>（関数宣言）</td></tr>
+        <tr><td>本番アダプタ</td><td>実際のハードウェア実装</td><td><code>drv1.c</code>（ドライバ実装）</td></tr>
+        <tr><td>テスト用アダプタ</td><td>テスト用のフェイク実装</td><td>FFFマクロによるフェイク</td></tr>
+    </tbody>
+</table>
+
+<h2>6.4 ポートアダプタ設計のステップ</h2>
+
+<div class="mermaid">
+graph TD
+    S1["1. ビジネスロジックを特定する\n何を計算・判断するか"] --> S2["2. 外部依存を特定する\n何がハードウェアに触るか"]
+    S2 --> S3["3. ポートを定義する\nヘッダファイルに関数宣言を書く"]
+    S3 --> S4["4. テスト用アダプタを作る\nFFFでフェイクを定義"]
+    S4 --> S5["5. テストを書く\nビジネスロジックをテスト"]
+    S5 --> S6["6. ビジネスロジックを実装する\nテストが通るコードを書く"]
+    S6 --> S7["7. 本番アダプタを実装する\nハードウェアアクセスの実装"]
+    style S1 fill:#e3f2fd
+    style S2 fill:#e3f2fd
+    style S3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style S4 fill:#f3e5f5
+    style S5 fill:#e8f5e9
+    style S6 fill:#e8f5e9
+    style S7 fill:#fff3e0
+</div>
+
+<div class="callout callout-warning">
+    <strong>⚠️ ポイント</strong>
+    本番アダプタ（ハードウェア実装）は<strong>最後に</strong>書きます。ビジネスロジックのテストは、ハードウェアなしでも完了できます。
+</div>
+
+<h2>6.5 DIPとポートアダプタの関係</h2>
+
+<div class="mermaid">
+graph TD
+    subgraph Principle["原則レベル"]
+        DIP["DIP — 依存性逆転の原則\n上位は下位に依存しない\n両者は抽象に依存する"]
+    end
+    subgraph Pattern["パターンレベル"]
+        PA["ポートアダプタパターン\nコアは外部に依存しない\nポートを介して通信する"]
+    end
+    subgraph Implementation["実装レベル"]
+        IMPL["C言語での実現\nヘッダ = ポート\n.c ファイル = アダプタ\nFFF = テスト用アダプタ"]
+    end
+    DIP -->|"具体化"| PA
+    PA -->|"具体化"| IMPL
+    style DIP fill:#e3f2fd
+    style PA fill:#e8f5e9
+    style IMPL fill:#fff3e0
+</div>
+
+<h2>6.6 AI駆動開発でのポートアダプタ</h2>
+
+<div class="mermaid">
+graph TD
+    A["1. まずポートを定義\nヘッダファイルを自分で書く"] --> B["2. テストをAIに依頼\nこのポートに対するテストを書いて"]
+    B --> C["3. 実装をAIに依頼\nこのテストが通る実装を書いて"]
+    C --> D["4. テストで検証\nAIの出力をテストで確認"]
+    style A fill:#fff8e1,stroke:#f9a825,stroke-width:2px
+    style B fill:#e8f5e9
+    style C fill:#e8f5e9
+    style D fill:#e3f2fd
+</div>
+
+<div class="callout callout-info">
+    <strong>💡 人間が担うべき責任</strong>
+    <ol>
+        <li><strong>ポート（インターフェース）の定義</strong> — これはアーキテクチャの判断であり、人間が行う</li>
+        <li><strong>テスト設計の方針決定</strong> — 何をテストするかは人間が決める</li>
+        <li><strong>生成コードのレビュー</strong> — AIの出力がポートの契約に従っているか確認する</li>
+    </ol>
+</div>
+
+<h3>AIへの依頼例</h3>
+<pre><code>[AIへの依頼例]
+以下のヘッダファイル（ポート）に対して：
+- FFFを使ったフェイクの定義
+- Google Testのフィクスチャ
+- 正常系・異常系のテストケース
+を作成してください。
+
+ヘッダファイル:
+// sensor_port.h
+int read_temperature(void);
+bool is_sensor_ready(void);</code></pre>
+
+</div>
+
+<!-- ==================== 第7章 ==================== -->
+<div id="ch7" class="tab-content">
+
+<h1>第7章: AI駆動開発とテスト駆動開発の融合</h1>
+
+<h2>7.1 AI駆動開発の現在地</h2>
+<p>GitHub Copilot、ChatGPT、Claude などの AI ツールは、コード生成を劇的に高速化しました。しかし、AI が生成したコードの品質を保証するのは依然として<strong>人間の責任</strong>です。</p>
+
+<h3>AI駆動開発の落とし穴</h3>
+<div class="mermaid">
+graph TD
+    A["AIにコード生成を依頼"] --> B{"テストはあるか？"}
+    B -->|"ない"| C["AIの出力を目視確認"]
+    C --> D["見落とし・誤解のリスク"]
+    D --> E["バグが本番に混入"]
+    B -->|"ある"| F["テストで自動検証"]
+    F --> G["問題の早期発見"]
+    G --> H["修正して再テスト"]
+    style C fill:#ffebee
+    style D fill:#ffcdd2
+    style E fill:#ff8a80
+    style F fill:#e8f5e9
+    style G fill:#c8e6c9
+    style H fill:#a5d6a7
+</div>
+
+<h2>7.2 なぜTDDがAI駆動開発に不可欠か</h2>
+
+<h3>論理的根拠</h3>
+<div class="mermaid">
+graph TD
+    P1["前提1: AIは確率的にコードを生成する\n必ずしも正しいとは限らない"] --> C1["帰結1: AIの出力には検証が必要"]
+    P2["前提2: 人間の目視レビューには限界がある\n特に複雑なロジックや境界条件"] --> C1
+    C1 --> C2["帰結2: 自動化された検証手段が必要 = テスト"]
+    P3["前提3: テストを後から書くと\n仕様が曖昧なまま検証することになる"] --> C3["帰結3: テストを先に書くべき = TDD"]
+    C2 --> C3
+    C3 --> C4["結論: AI駆動開発にはTDDが不可欠"]
+    style P1 fill:#fff8e1
+    style P2 fill:#fff8e1
+    style P3 fill:#fff8e1
+    style C1 fill:#e3f2fd
+    style C2 fill:#e3f2fd
+    style C3 fill:#e3f2fd
+    style C4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+</div>
+
+<h3>AI駆動 × TDDのワークフロー</h3>
+<div class="mermaid">
+graph TD
+    S1["1. 要件を整理する — 人間"] --> S2["2. テストを設計する — 人間"]
+    S2 --> S3["3. テストコードを書く — AI支援可"]
+    S3 --> S4["4. テスト失敗を確認 — Red"]
+    S4 --> S5["5. AIにコード生成を依頼"]
+    S5 --> S6{"テストは通るか？"}
+    S6 -->|"Yes"| S7["7. リファクタリング"]
+    S6 -->|"No"| S8["6. AIに修正依頼 or 手動修正"]
+    S8 --> S6
+    S7 --> S9["8. 次の要件へ"]
+    style S1 fill:#fff8e1,stroke:#f9a825,stroke-width:2px
+    style S2 fill:#fff8e1,stroke:#f9a825,stroke-width:2px
+    style S3 fill:#e8f5e9
+    style S4 fill:#ffcccc
+    style S5 fill:#e3f2fd
+    style S7 fill:#ccccff
+    style S8 fill:#fce4ec
+</div>
+
+<h2>7.3 人間が担うべき判断</h2>
+
+<div class="mermaid">
+graph TD
+    subgraph Human["人間が担う"]
+        L1["アーキテクチャ設計\nモジュール構成, 依存方向"]
+        L2["テスト戦略\n何をどのレベルでテストするか"]
+        L3["インターフェース設計\nポートの定義"]
+        L4["受け入れ基準\n何をもって完了とするか"]
+    end
+    subgraph AI["AIに委ねてよい"]
+        L5["テストコードの雛形生成"]
+        L6["プロダクションコードの生成"]
+        L7["リファクタリングの候補提案"]
+        L8["ドキュメント生成"]
+    end
+    subgraph Review["人間が最終確認"]
+        L9["生成コードのレビュー"]
+        L10["テスト結果の解釈"]
+        L11["アーキテクチャの整合性確認"]
+    end
+    style L1 fill:#fff8e1
+    style L2 fill:#fff8e1
+    style L3 fill:#fff8e1
+    style L4 fill:#fff8e1
+    style L5 fill:#e3f2fd
+    style L6 fill:#e3f2fd
+    style L7 fill:#e3f2fd
+    style L8 fill:#e3f2fd
+    style L9 fill:#fce4ec
+    style L10 fill:#fce4ec
+    style L11 fill:#fce4ec
+</div>
+
+<h3>チェックリスト: AI生成コードのレビュー</h3>
+<table>
+    <thead><tr><th>チェック項目</th><th>確認内容</th><th>具体例</th></tr></thead>
+    <tbody>
+        <tr><td>境界条件</td><td>入力の最小・最大値でのテストがあるか</td><td><code>INT_MAX</code>, <code>INT_MIN</code>, <code>NULL</code>, 空配列</td></tr>
+        <tr><td>エラー処理</td><td>異常系のハンドリングがあるか</td><td>メモリ不足、タイムアウト、不正入力</td></tr>
+        <tr><td>副作用</td><td>グローバル変数の意図しない変更がないか</td><td>静的変数の初期化漏れ</td></tr>
+        <tr><td>メモリ安全</td><td>バッファオーバーフローがないか</td><td>配列範囲チェック</td></tr>
+        <tr><td>依存方向</td><td>上位が下位に依存していないか</td><td>DIPに違反していないか</td></tr>
+        <tr><td>ホスト/ターゲット差異</td><td>型サイズの仮定はないか</td><td><code>int</code> のサイズに依存するコード</td></tr>
+    </tbody>
+</table>
+
+<h2>7.4 実践: TDD × AI のステップバイステップ</h2>
+
+<h3>ステップ1: 要件の整理（人間）</h3>
+<div class="callout callout-info">
+    <strong>📋 要件</strong>
+    温度が閾値を超えたらアラームを鳴らす。温度は整数値（℃）。閾値はコンパイル時定数（50℃）。アラームは ON/OFF の2状態。
+</div>
+
+<h3>ステップ2: ポートの定義（人間）</h3>
+<pre><code>// sensor_port.h — ポート定義（人間が書く）
+#ifndef SENSOR_PORT_H
+#define SENSOR_PORT_H
+
+#include &lt;stdbool.h&gt;
+
+int read_temperature(void);
+void set_alarm(bool on);
+
+#endif</code></pre>
+
+<h3>ステップ3: テストの設計と作成（人間 + AI支援）</h3>
+<pre><code>// test_temp_monitor.cpp
+#include "gtest/gtest.h"
+#include "fff.h"
+DEFINE_FFF_GLOBALS;
+
+extern "C" {
+#include "sensor_port.h"
+#include "temp_monitor.h"
+}
+
+FAKE_VALUE_FUNC(int, read_temperature);
+FAKE_VOID_FUNC(set_alarm, bool);
+
+class TempMonitorTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        read_temperature_fake.call_count = 0;
+        set_alarm_fake.call_count = 0;
+    }
+};
+
+// 閾値以下 → アラームOFF
+TEST_F(TempMonitorTest, BelowThreshold_AlarmOff) {
+    read_temperature_fake.return_val = 49;
+    check_temperature();
+    EXPECT_EQ(set_alarm_fake.arg0_history[0], false);
+}
+
+// 閾値超え → アラームON
+TEST_F(TempMonitorTest, AboveThreshold_AlarmOn) {
+    read_temperature_fake.return_val = 51;
+    check_temperature();
+    EXPECT_EQ(set_alarm_fake.arg0_history[0], true);
+}
+
+// ちょうど閾値 → アラームOFF（境界条件）
+TEST_F(TempMonitorTest, ExactThreshold_AlarmOff) {
+    read_temperature_fake.return_val = 50;
+    check_temperature();
+    EXPECT_EQ(set_alarm_fake.arg0_history[0], false);
+}</code></pre>
+
+<h3>ステップ4〜5: Red → AIに生成依頼</h3>
+<div class="callout callout-success">
+    <strong>✅ AIへの依頼</strong>
+    「以下のテストが通るように、temp_monitor.h と temp_monitor.c を作成してください。sensor_port.h のインターフェースを使用すること。閾値は <code>#define TEMP_THRESHOLD 50</code> とすること。」
+</div>
+
+<h3>ステップ6: AIが生成したコード（例）</h3>
+<pre><code>// temp_monitor.h
+#ifndef TEMP_MONITOR_H
+#define TEMP_MONITOR_H
+
+#define TEMP_THRESHOLD 50
+
+void check_temperature(void);
+
+#endif
+
+// temp_monitor.c
+#include "temp_monitor.h"
+#include "sensor_port.h"
+
+void check_temperature(void) {
+    int temp = read_temperature();
+    if (temp > TEMP_THRESHOLD) {
+        set_alarm(true);
+    } else {
+        set_alarm(false);
+    }
+}</code></pre>
+
+<h3>ステップ7〜8: Green → レビュー</h3>
+<div class="mermaid">
+graph TD
+    A["テスト通過"] --> B{"人間によるレビュー"}
+    B --> C["境界条件は十分か？"]
+    B --> D["エラー処理は適切か？"]
+    B --> E["コーディング規約準拠？"]
+    B --> F["DIPに違反していないか？"]
+    C --> G["不足があれば\nテスト追加"]
+    D --> G
+    E --> H["修正 + リファクタリング"]
+    F --> H
+    style A fill:#e8f5e9
+    style B fill:#fff8e1
+    style G fill:#fce4ec
+    style H fill:#e3f2fd
+</div>
+
+<h2>7.5 テスト駆動とAI駆動の相乗効果</h2>
+
+<table>
+    <thead><tr><th>テスト駆動の強み</th><th>AI駆動の強み</th><th>融合による効果</th></tr></thead>
+    <tbody>
+        <tr><td>仕様の明確化</td><td>コードの高速生成</td><td>明確な仕様 → 正確な生成</td></tr>
+        <tr><td>即座のフィードバック</td><td>パターン適用の支援</td><td>生成 → 検証 → 修正の高速ループ</td></tr>
+        <tr><td>リグレッション防止</td><td>反復作業の自動化</td><td>安全かつ高速な開発</td></tr>
+    </tbody>
+</table>
+
+<h2>7.6 アンチパターン: やってはいけないこと</h2>
+
+<h3>1. テストなしでAI生成コードを採用する</h3>
+<div class="mermaid">
+graph TD
+    A2["AIにコード生成を依頼"] --> B2["生成コードをそのままコミット"]
+    B2 --> C2["バグが後から発覚"]
+    C2 --> D2["原因特定に時間がかかる"]
+    D2 --> E2["同じ過ちを繰り返す"]
+    style A2 fill:#ffebee
+    style B2 fill:#ffcdd2
+    style C2 fill:#ef9a9a
+    style D2 fill:#e57373
+    style E2 fill:#ef5350
+</div>
+
+<h3>2. AIにテスト設計を丸投げする</h3>
+<ul>
+    <li><strong>網羅性の欠如</strong>: AIは「よくあるケース」は得意だが、ドメイン固有の境界条件を見落とす</li>
+    <li><strong>仕様の誤解</strong>: AIは仕様を推測するため、意図と異なるテストを生成する</li>
+    <li><strong>テストの形骸化</strong>: テストが通るようにテストを書くだけで、実質的な検証にならない</li>
+</ul>
+
+<h3>3. DIPを無視してAIにアーキテクチャを決めさせる</h3>
+<div class="mermaid">
+graph TD
+    A3["AIにアーキテクチャを一任"] --> B3["最短距離のコードを生成"]
+    B3 --> C3["直接依存が増殖"]
+    C3 --> D3["テスト不能なコード"]
+    D3 --> E3["ホスト環境テスト断念"]
+    style A3 fill:#ffebee
+    style B3 fill:#ffcdd2
+    style C3 fill:#ef9a9a
+    style D3 fill:#e57373
+    style E3 fill:#ef5350
+</div>
+
+<h2>7.7 まとめ: AI時代の組み込み開発者の心得</h2>
+
+<div class="mermaid">
+graph TD
+    M1["設計は人間が行う\nアーキテクチャとインターフェース"] --> M2["テストは人間が設計する\n何をテストするかを決める"]
+    M2 --> M3["AIは実装の加速に使う\nテストの雛形やコード生成"]
+    M3 --> M4["テストで検証する\nAIの出力を信用しない"]
+    M4 --> M5["継続的に改善する\nリファクタリングとテスト追加"]
+    style M1 fill:#fff8e1,stroke:#f9a825,stroke-width:2px
+    style M2 fill:#fff8e1,stroke:#f9a825,stroke-width:2px
+    style M3 fill:#e3f2fd
+    style M4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style M5 fill:#f3e5f5
+</div>
+
+<ol>
+    <li><strong>設計は人間が行う</strong>: アーキテクチャ（モジュール構成、依存方向）は人間が決める</li>
+    <li><strong>テストは人間が設計する</strong>: テストで「何を検証するか」は人間が決める</li>
+    <li><strong>AIは実装を加速する</strong>: テストコードの雛形生成、プロダクションコードの生成に活用</li>
+    <li><strong>テストで検証する</strong>: AIの出力は必ずテストで検証する</li>
+    <li><strong>継続的に改善する</strong>: テスト通過後もリファクタリングとテスト追加を行う</li>
+</ol>
+
+</div>
+
+<!-- ==================== 用語集モーダル ==================== -->
+<div id="glossaryModal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>📖 用語集</h2>
+            <button class="modal-close" onclick="toggleGlossary()">&times;</button>
+        </div>
+        <div class="modal-search">
+            <input type="text" id="glossarySearch" placeholder="用語を検索..." oninput="filterGlossary()">
+        </div>
+        <div class="modal-body" id="glossaryBody">
+            <!-- Glossary items will be generated by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+// Tab switching
+function showTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    // Find the clicked button - match by tab index
+    const tabs = ['ch1','ch2','ch3','ch4','ch5','ch6','ch7'];
+    const idx = tabs.indexOf(tabId);
+    if (idx >= 0) {
+        document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+    }
+    // Re-render mermaid diagrams in newly visible tab
+    setTimeout(() => {
+        mermaid.run({nodes: document.getElementById(tabId).querySelectorAll('.mermaid:not([data-processed])')});
+    }, 100);
+    window.scrollTo(0, 0);
+}
+
+// Glossary data
+const glossaryData = [
+    {term:"アサーション", en:"Assertion", def:"テスト内で期待値と実際値を比較し、結果を検証する文。EXPECT_EQ, ASSERT_TRUE など。"},
+    {term:"アダプタ", en:"Adapter", def:"ポート（インターフェース）の具体的な実装。本番用とテスト用がある。"},
+    {term:"アプリケーション層", en:"Application Layer", def:"ビジネスロジックを担当するソフトウェア層。ハードウェアに直接依存しない。"},
+    {term:"エンディアン", en:"Endianness", def:"複数バイトのデータをメモリに格納する際のバイト順。ビッグエンディアンとリトルエンディアンがある。"},
+    {term:"クロスコンパイラ", en:"Cross Compiler", def:"開発環境（ホスト）とは異なるターゲット環境向けのバイナリを生成するコンパイラ。"},
+    {term:"スタブ", en:"Stub", def:"テスト時に使用する偽物の関数。固定値を返すだけの最も単純な形態。"},
+    {term:"スパイ", en:"Spy", def:"本物の関数を呼び出しつつ、呼び出し情報を記録するテストダブル。"},
+    {term:"ターゲット環境", en:"Target Environment", def:"実際の組み込みハードウェア（マイコンボード等）の実行環境。"},
+    {term:"ダミー", en:"Dummy", def:"引数や依存を満たすために渡すだけで、実際には使われないオブジェクト。"},
+    {term:"テストケース", en:"Test Case", def:"1つの検証項目。Google Test では TEST または TEST_F マクロで定義する。"},
+    {term:"テストスイート", en:"Test Suite", def:"関連するテストケースをグループ化したもの。フィクスチャクラスに対応。"},
+    {term:"テストダブル", en:"Test Double", def:"テスト時に使う偽物の総称。スタブ、モック、フェイク、スパイ、ダミーの上位概念。"},
+    {term:"テスト駆動開発", en:"Test-Driven Development (TDD)", def:"テストを先に書き、そのテストを通すコードを後から実装する開発手法。Red-Green-Refactorのサイクルで進める。"},
+    {term:"ドライバ層", en:"Driver Layer", def:"ハードウェアに直接アクセスするソフトウェア層。レジスタ操作やペリフェラル制御を担当。"},
+    {term:"フィクスチャ", en:"Fixture", def:"テストケース群で共有する初期化・後始末処理。SetUp() と TearDown() で定義する。"},
+    {term:"フェイク", en:"Fake", def:"テスト時に使用する偽物の関数。簡易的な実装を持ち、本物に近い振る舞いをする。"},
+    {term:"ポート", en:"Port", def:"アプリケーションコアが外部と通信するためのインターフェース。C言語ではヘッダファイルの関数宣言。"},
+    {term:"ポートアダプタパターン", en:"Port-Adapter Pattern", def:"アプリケーションコアをポート（インターフェース）で囲み、外部依存をアダプタで実装する設計パターン。ヘキサゴナルアーキテクチャとも呼ばれる。"},
+    {term:"ホスト環境", en:"Host Environment", def:"開発用PC上のソフトウェア実行環境。テストやデバッグをPC上で行う。"},
+    {term:"モック", en:"Mock", def:"テスト時に使用する偽物の関数。呼び出し回数や引数の検証機能を持つ。"},
+    {term:"リグレッション", en:"Regression", def:"既存の正しく動作していた機能が、新しい変更によって壊れること。"},
+    {term:"リファクタリング", en:"Refactoring", def:"外部の振る舞いを変えずに、コードの内部構造を改善すること。"},
+    {term:"依存性逆転の原則", en:"Dependency Inversion Principle (DIP)", def:"SOLID原則の1つ。上位モジュールは下位モジュールに依存すべきでなく、両者は抽象に依存すべきという原則。"},
+    {term:"依存性注入", en:"Dependency Injection (DI)", def:"依存するオブジェクトを外部から渡す設計技法。C言語では関数ポインタで実現。"},
+    {term:"単一責任の原則", en:"Single Responsibility Principle (SRP)", def:"SOLID原則の1つ。モジュールは変更の理由を1つだけ持つべきという原則。"},
+    {term:"名前マングリング", en:"Name Mangling", def:"C++コンパイラが関数のオーバーロードを区別するために、関数名を変換する処理。extern \"C\" で抑制する。"},
+    {term:"境界条件", en:"Boundary Condition", def:"入力値の最小値、最大値、0、切り替わり点など、バグが発生しやすい値の条件。"},
+    {term:"開放閉鎖の原則", en:"Open-Closed Principle (OCP)", def:"SOLID原則の1つ。拡張に対して開いており、修正に対して閉じているべきという原則。"},
+    {term:"関数ポインタ", en:"Function Pointer", def:"関数のアドレスを保持する変数。C言語でポリモーフィズム（多態性）を実現するために使用する。"},
+    {term:"Red-Green-Refactor", en:"Red-Green-Refactor", def:"TDDの3ステップサイクル。失敗テスト作成（Red）→テスト通過（Green）→リファクタリング（Refactor）。"},
+    {term:"CI/CD", en:"Continuous Integration / Continuous Delivery", def:"継続的インテグレーション/継続的デリバリー。コードの変更を自動的にビルド・テスト・デプロイする仕組み。"},
+    {term:"CMake", en:"CMake", def:"クロスプラットフォームのビルドシステムジェネレータ。ビルド手順をプラットフォームに依存しない形で記述できる。"},
+    {term:"CTest", en:"CTest", def:"CMakeに付属するテスト実行ツール。テストの発見と実行、結果のレポートを行う。"},
+    {term:"extern \"C\"", en:"extern \"C\"", def:"C++コード内でC言語の関数をリンクするための宣言。名前マングリングを抑制する。"},
+    {term:"FetchContent", en:"FetchContent", def:"CMakeの機能。外部ライブラリをビルド時に自動ダウンロードしてプロジェクトに組み込む。"},
+    {term:"FFF", en:"Fake Function Framework", def:"C/C++向けのフェイク関数生成フレームワーク。ヘッダファイル1つ（fff.h）で利用可能。"},
+    {term:"FIRST原則", en:"FIRST Principles", def:"良いテストの特徴。Fast（高速）、Independent（独立）、Repeatable（再現可能）、Self-validating（自己検証）、Timely（適時）。"},
+    {term:"Google Test", en:"Google Test (gtest)", def:"Googleが開発したC++用テストフレームワーク。豊富なアサーションとテスト管理機能を持つ。"},
+    {term:"HAL", en:"Hardware Abstraction Layer", def:"ハードウェア抽象化層。ハードウェア固有の操作を抽象的なインターフェースで隠蔽する層。"},
+    {term:"SOLID", en:"SOLID", def:"オブジェクト指向設計の5つの基本原則の頭文字。SRP, OCP, LSP, ISP, DIP。C言語でも適用可能。"}
+];
+
+// Render glossary
+function renderGlossary(filter = '') {
+    const body = document.getElementById('glossaryBody');
+    const lowerFilter = filter.toLowerCase();
+    const filtered = glossaryData.filter(item =>
+        item.term.toLowerCase().includes(lowerFilter) ||
+        item.en.toLowerCase().includes(lowerFilter) ||
+        item.def.toLowerCase().includes(lowerFilter)
+    );
+    body.innerHTML = filtered.map(item => `
+        <div class="glossary-item">
+            <span class="glossary-term">${item.term}</span>
+            <span class="glossary-english">${item.en}</span>
+            <div class="glossary-def">${item.def}</div>
+        </div>
+    `).join('');
+}
+
+function toggleGlossary() {
+    const modal = document.getElementById('glossaryModal');
+    modal.classList.toggle('visible');
+    if (modal.classList.contains('visible')) {
+        renderGlossary();
+        document.getElementById('glossarySearch').focus();
+    }
+}
+
+function filterGlossary() {
+    renderGlossary(document.getElementById('glossarySearch').value);
+}
+
+// Close modal on overlay click
+document.getElementById('glossaryModal').addEventListener('click', function(e) {
+    if (e.target === this) toggleGlossary();
+});
+
+// Close modal on Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('glossaryModal');
+        if (modal.classList.contains('visible')) toggleGlossary();
+    }
+});
+
+// Initialize Mermaid
+mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    securityLevel: 'loose',
+    flowchart: { useMaxWidth: true, htmlLabels: true }
+});
+</script>
+
+</body>
+</html>
