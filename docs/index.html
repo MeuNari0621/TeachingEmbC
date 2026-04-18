@@ -450,7 +450,28 @@ graph TD
     <li><strong>生成コードのレビュー</strong> — AIの出力を鵜呑みにせず、テストで検証する</li>
 </ol>
 
-<h2>1.4 本教材の目標</h2>
+<h2>1.4 アプリケーション層とドライバ層の分離</h2>
+<p>組み込みソフトウェアでは、<strong>アプリケーション層（APP）</strong>と<strong>ドライバ層（DRV）</strong>を分離することが一般的です。</p>
+<ul>
+    <li><strong>アプリケーション層</strong>: ビジネスロジックを担当する。例えば「2つの値を加算する」「温度が閾値を超えたらアラームを鳴らす」などの処理</li>
+    <li><strong>ドライバ層</strong>: ハードウェアへのアクセスを担当する。例えば「GPIOレジスタを操作する」「ADCの値を読み取る」などの処理</li>
+</ul>
+
+<div class="mermaid">
+graph TD
+    APP["アプリケーション層\nビジネスロジック\nハードウェアに依存しない"] -->|"インターフェースを通じて呼び出し"| DRV["ドライバ層\nハードウェアアクセス\nレジスタ操作等"]
+    DRV --> HWLayer["ハードウェア"]
+    style APP fill:#e8f5e9
+    style DRV fill:#fff3e0
+    style HWLayer fill:#ffebee
+</div>
+
+<div class="callout callout-info">
+    <strong>💡 なぜ分離が重要か</strong>
+    テスト時にドライバ層をフェイク（偽物）に差し替えることで、ハードウェアなしでもアプリケーション層のロジックをテストできます。この考え方は、第5章で学ぶ「依存性逆転の原則（DIP）」や第6章の「ポートアダプタパターン」の基礎となります。
+</div>
+
+<h2>1.5 本教材の目標</h2>
 
 <div class="mermaid">
 graph TD
@@ -753,7 +774,7 @@ TEST(AddTest, NegativeNumbers) {
 
 <div class="callout callout-info">
     <strong>💡 extern "C" とは</strong>
-    C++コンパイラに「この中のヘッダはC言語の規約に従う」と伝えるための宣言です。これがないと、C++の名前マングリングにより、Cの関数がリンクできません。
+    C++コンパイラに「この中のヘッダはC言語の規約に従う」と伝えるための宣言です。C++コンパイラは、関数のオーバーロード（同じ名前で引数が異なる関数）を区別するために、コンパイル時に関数名を内部的に変換します。この処理を<strong>名前マングリング</strong>と呼びます。例えば、<code>add(int, int)</code> は <code>_Z3addii</code> のような名前に変換されます。しかしCコンパイラはこのような変換を行わないため、<code>add</code> という名前のままです。<code>extern "C"</code> を使わないと、C++側では <code>_Z3addii</code> を探しているのにCの <code>add</code> しか存在せず、リンクエラーになります。
 </div>
 
 <h3><code>extern "C"</code> の仕組み</h3>
@@ -777,7 +798,7 @@ graph LR
 </div>
 
 <h2>3.4 フィクスチャを使ったテスト（TEST_F マクロ）</h2>
-<p>複数のテストケースで共通の初期化処理がある場合、<strong>フィクスチャ</strong>を使います。</p>
+<p>テストケースが増えると、共通の初期化処理が必要になります。例えば、テスト対象の関数が他の関数に依存している場合、その依存関数の状態を毎回リセットする必要があります。このような<strong>共通のセットアップ処理</strong>をまとめるのが<strong>フィクスチャ</strong>です。</p>
 
 <h3>フィクスチャの実行フロー</h3>
 
@@ -802,10 +823,16 @@ sequenceDiagram
 </div>
 
 <h3>本プロジェクトでの実例</h3>
+
+<div class="callout callout-info">
+    <strong>💡 補足</strong>
+    この例では <code>fff.h</code>、<code>DEFINE_FFF_GLOBALS</code>、<code>FAKE_VOID_FUNC</code> というFFF（Fake Function Framework）の機能を使っています。FFFの詳細は次の第4章で解説しますが、ここでは「<code>add()</code> が内部で呼んでいる <code>doubleForFake()</code> をテスト用の偽物に置き換えている」とだけ理解してください。
+</div>
+
 <pre><code>// test_app.cpp
 #include "gtest/gtest.h"
-#include "fff.h"
-DEFINE_FFF_GLOBALS;
+#include "fff.h"                  // FFF を利用（詳細は第4章で解説）
+DEFINE_FFF_GLOBALS;               // FFF のグローバル変数定義（第4章で解説）
 
 extern "C" {
 #include "../src/APP/INC/add.h"
@@ -1295,6 +1322,25 @@ void app_process(const DriverInterface *drv) {
     #include "driver_real.h"
 #endif</code></pre>
 
+<h3>どのパターンを選ぶべきか</h3>
+<table>
+    <thead><tr><th>パターン</th><th>利点</th><th>欠点</th><th>適した場面</th></tr></thead>
+    <tbody>
+        <tr><td>パターン1: ヘッダ分離</td><td>シンプル、既存コードに適用しやすい</td><td>実行時に切り替えできない</td><td>組み込みCの多くの場面。FFFとの相性が良い</td></tr>
+        <tr><td>パターン2: 関数ポインタ</td><td>実行時に切り替え可能</td><td>コードが複雑になる</td><td>プラグイン的な拡張が必要な場合</td></tr>
+        <tr><td>パターン3: コンパイルスイッチ</td><td>最も導入が容易</td><td>条件分岐が増えると保守困難</td><td>既存コードへの一時的な対応</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-info">
+    <strong>💡 本教材のプロジェクトはなぜパターン1を採用しているか</strong>
+    <ol>
+        <li><strong>FFFとの相性が良い</strong>: FFFは同じ関数名のフェイクをマクロで生成するため、ヘッダ分離パターンと自然に組み合わせられる</li>
+        <li><strong>組み込みCの慣習に合致</strong>: 多くの組み込みプロジェクトでは既にヘッダとソースを分離しており、追加の設計変更が不要</li>
+        <li><strong>学習コストが低い</strong>: 関数ポインタのパターンは強力だが、C言語初心者には理解が難しい</li>
+    </ol>
+</div>
+
 <h2>5.5 DIPとテストの関係</h2>
 <div class="mermaid">
 graph LR
@@ -1577,6 +1623,8 @@ graph TD
 <h2>7.2 なぜTDDがAI駆動開発に不可欠か</h2>
 
 <h3>論理的根拠</h3>
+<p><strong>前提1</strong>について補足します。AI（大規模言語モデル）は、学習データの統計的パターンに基づいてコードを生成します。つまり「この文脈で最も確率が高いトークン列」を選択する仕組みです。その結果、一見正しそうに見えるが微妙にロジックが間違っているコードや、ある環境では動くが別の環境では動かないコードが生成されることがあります。特に、組み込み特有の制約（型サイズ、エンディアン、リソース制限）はAIの学習データに十分含まれていない可能性があり、誤りのリスクが高まります。</p>
+
 <div class="mermaid">
 graph TD
     P1["前提1: AIは確率的にコードを生成する\n必ずしも正しいとは限らない"] --> C1["帰結1: AIの出力には検証が必要"]
@@ -1592,6 +1640,11 @@ graph TD
     style C2 fill:#e3f2fd
     style C3 fill:#e3f2fd
     style C4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+</div>
+
+<div class="callout callout-warning">
+    <strong>⚠️ 補足</strong>
+    もちろん、単純なコード（例: getter/setter）ではTDDのオーバーヘッドが見合わないこともあります。重要なのは「ビジネスロジック」や「複雑な条件分岐」に対してTDDを適用することです。
 </div>
 
 <h3>AI駆動 × TDDのワークフロー</h3>
