@@ -7,9 +7,8 @@
 int16_t temperature_convert(uint16_t raw_adc) {
     /* mV = raw * 3300 / 4095 */
     int32_t mv = (int32_t)raw_adc * 3300 / 4095;
-    /* LM35: 10mV/℃ → temp_x10 = mv - 500 (offset for -50〜+150℃ range) */
-    /* ここでは簡易化: temp_x10 = (mv * 10) / 100 = mv / 10 */
-    /* ×10 で保持 */
+    /* 簡易変換: temp_x10 = mv / 10 */
+    /* ×10 で保持（例: 165 = 16.5℃） */
     int16_t temp_x10 = (int16_t)(mv / 10);
     return temp_x10;
 }

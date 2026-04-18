@@ -43,5 +43,5 @@
 | volatile | — | コンパイラの最適化を抑制するC言語の修飾子。ハードウェアレジスタアクセスに使用 |
 | クロスコンパイラ | Cross Compiler | ホストと異なるアーキテクチャ向けのコンパイラ（例: arm-none-eabi-gcc） |
 | エンディアン | Endianness | バイトの並び順。リトルエンディアン（x86）とビッグエンディアン |
-| FPU | Floating Point Unit | 浮動小数点演算ユニット。ないMCUでは浮動小数点を避ける |
+| FPU | Floating Point Unit | 浮動小数点演算ユニット。FPUがないMCUでは浮動小数点を避ける |
 | GMock | Google Mock | Google製のモックフレームワーク。C++クラスのモックを自動生成 |

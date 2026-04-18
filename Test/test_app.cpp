@@ -26,7 +26,7 @@ TEST_F(TemperatureConvertTest, ZeroRawReturnsZero) {
 }
 
 TEST_F(TemperatureConvertTest, MidRangeValue) {
-    /* ADC 2048 → 約 1650mV → 約 165 (16.5℃) */
+    /* ADC 2048 → 約 1650mV → 約 165 (約16.5℃) */
     int16_t result = temperature_convert(2048);
     EXPECT_GE(result, 160);
     EXPECT_LE(result, 170);

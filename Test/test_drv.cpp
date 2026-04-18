@@ -38,7 +38,7 @@ protected:
 /* --- 正常系テスト --- */
 
 TEST_F(TempMonitorTest, NormalTemperature_LedOff) {
-    /* ADC 1000 → 約 80 (8.0℃) → 閾値 500 未満 → LED OFF */
+    /* ADC 1000 → 約 80 (8.0℃) → 閾値 ALARM_THRESHOLD_X10(300) 未満 → LED OFF */
     hal_adc_read_fake.return_val = 1000;
 
     int16_t result = temp_monitor_execute();
