@@ -339,7 +339,7 @@
     <button class="tab-btn active" onclick="showTab('ch1')" role="tab">第1章 はじめに</button>
     <button class="tab-btn" onclick="showTab('ch2')" role="tab">第2章 環境構築</button>
     <button class="tab-btn" onclick="showTab('ch3')" role="tab">第3章 Google Test基本</button>
-    <button class="tab-btn" onclick="showTab('ch4')" role="tab">第4章 FFF・モック</button>
+    <button class="tab-btn" onclick="showTab('ch4')" role="tab">第4章 FFF・フェイク</button>
     <button class="tab-btn" onclick="showTab('ch5')" role="tab">第5章 SOLID・DIP</button>
     <button class="tab-btn" onclick="showTab('ch6')" role="tab">第6章 ポートアダプタ</button>
     <button class="tab-btn" onclick="showTab('ch7')" role="tab">第7章 AI駆動×TDD</button>
@@ -492,7 +492,7 @@ graph TD
 
 <ol>
     <li><strong>Google Test</strong> を使った組み込みCコードのホスト環境テスト</li>
-    <li><strong>FFF（Fake Function Framework）</strong> を使ったモック・フェイク関数の作成</li>
+    <li><strong>FFF（Fake Function Framework）</strong> を使ったフェイク関数の作成（テスト用の偽物の関数を生成）</li>
     <li><strong>SOLID原則</strong>、特に<strong>依存性逆転の原則（DIP）</strong>の理解と適用</li>
     <li><strong>ポートアダプタパターン</strong>によるハードウェア依存の分離</li>
     <li><strong>AI駆動開発</strong>でTDDを活用するための考え方と実践</li>
@@ -554,6 +554,11 @@ graph TD
 <div class="callout callout-info">
     <strong>💡 設計のポイント</strong>
     APP（アプリケーション層）とDRV（ドライバ層）の分離は、組み込み開発において非常に重要な設計判断です。後の章で学ぶポートアダプタパターンの基礎となります。
+</div>
+
+<div class="callout callout-warning">
+    <strong>⚠️ 命名規約について</strong>
+    本プロジェクトの既存コードでは <code>doubleForFake</code> のようなキャメルケース（camelCase）を使用していますが、第6章以降の新しいサンプルコードでは <code>read_temperature</code> のようなスネークケース（snake_case）を使用しています。組み込みC開発ではスネークケースが一般的ですが、既存のプロジェクトに合わせることも重要です。
 </div>
 
 <h2>2.3 CMakeによるビルドシステム</h2>
@@ -936,10 +941,10 @@ graph LR
 <!-- ==================== 第4章 ==================== -->
 <div id="ch4" class="tab-content">
 
-<h1>第4章: FFF（Fake Function Framework）— モックとフェイクの実践</h1>
+<h1>第4章: FFF（Fake Function Framework）— フェイク関数によるテスト</h1>
 
-<h2>4.1 なぜモックが必要か</h2>
-<p>組み込みCのコードは、ハードウェアにアクセスする関数や他のモジュールの関数に依存しています。ホスト環境では、これらの依存先を<strong>偽物（フェイク/モック）</strong>に置き換える必要があります。</p>
+<h2>4.1 なぜ依存先を偽物に置き換える必要があるか</h2>
+<p>組み込みCのコードは、ハードウェアにアクセスする関数や他のモジュールの関数に依存しています。ホスト環境では、これらの依存先を<strong>テストダブル（テスト用の偽物）</strong>に置き換える必要があります。テストダブルの代表的な種類として「フェイク」「スタブ」「モック」がありますが、FFFは主に<strong>フェイク関数</strong>を生成するフレームワークです（詳細な分類は本章末尾の4.7節で説明します）。</p>
 
 <h3>依存関係の問題</h3>
 
@@ -1372,7 +1377,7 @@ graph LR
 <h1>第6章: ポートアダプタパターン — ハードウェア依存を分離する</h1>
 
 <h2>6.1 ポートアダプタパターンとは</h2>
-<p>ポートアダプタパターン（別名: ヘキサゴナルアーキテクチャ）は、アプリケーションの核心ロジックを外部の技術的詳細から分離する設計パターンです。</p>
+<p>第5章で学んだ依存性逆転の原則（DIP）を、アーキテクチャレベルに拡張したのが<strong>ポートアダプタパターン</strong>（別名: ヘキサゴナルアーキテクチャ）です。DIPが「依存の方向を逆転させる」という原則だったのに対し、ポートアダプタパターンは「アプリケーションの核心ロジックをポート（インターフェース）で囲み、外部をアダプタ（実装）で接続する」という具体的な構造を提供します。</p>
 
 <div class="mermaid">
 graph TD
@@ -1971,11 +1976,15 @@ const glossaryData = [
     {term:"CTest", en:"CTest", def:"CMakeに付属するテスト実行ツール。テストの発見と実行、結果のレポートを行う。"},
     {term:"extern \"C\"", en:"extern \"C\"", def:"C++コード内でC言語の関数をリンクするための宣言。名前マングリングを抑制する。"},
     {term:"FetchContent", en:"FetchContent", def:"CMakeの機能。外部ライブラリをビルド時に自動ダウンロードしてプロジェクトに組み込む。"},
-    {term:"FFF", en:"Fake Function Framework", def:"C/C++向けのフェイク関数生成フレームワーク。ヘッダファイル1つ（fff.h）で利用可能。"},
+    {term:"FFF", en:"Fake Function Framework", def:"C/C++向けのフェイク関数生成フレームワーク。ヘッダファイル1つ（fff.h）で利用可能。マクロでフェイク関数を定義し、呼び出し回数や引数の記録、戻り値の制御ができる。"},
     {term:"FIRST原則", en:"FIRST Principles", def:"良いテストの特徴。Fast（高速）、Independent（独立）、Repeatable（再現可能）、Self-validating（自己検証）、Timely（適時）。"},
+    {term:"GMock", en:"Google Mock", def:"Google Testに付属するC++用のモックフレームワーク。C++のクラスに対してモックを生成する。C言語関数のモックには不向きなため、本教材ではFFFを使用。"},
     {term:"Google Test", en:"Google Test (gtest)", def:"Googleが開発したC++用テストフレームワーク。豊富なアサーションとテスト管理機能を持つ。"},
     {term:"HAL", en:"Hardware Abstraction Layer", def:"ハードウェア抽象化層。ハードウェア固有の操作を抽象的なインターフェースで隠蔽する層。"},
-    {term:"SOLID", en:"SOLID", def:"オブジェクト指向設計の5つの基本原則の頭文字。SRP, OCP, LSP, ISP, DIP。C言語でも適用可能。"}
+    {term:"SOLID", en:"SOLID", def:"オブジェクト指向設計の5つの基本原則の頭文字。SRP, OCP, LSP, ISP, DIP。C言語でも適用可能。"},
+    {term:"ヘキサゴナルアーキテクチャ", en:"Hexagonal Architecture", def:"ポートアダプタパターンの別名。アプリケーションコアを六角形で表現し、各辺にポートとアダプタを配置する構造から名付けられた。"},
+    {term:"バイナリ", en:"Binary", def:"コンパイル・リンク済みの実行可能ファイル。ターゲット環境に転送して実行する。"},
+    {term:"大規模言語モデル", en:"Large Language Model (LLM)", def:"大量のテキストデータで学習したAIモデル。GitHub Copilot、ChatGPT、Claude等のコード生成AIの基盤技術。"}
 ];
 
 // Render glossary

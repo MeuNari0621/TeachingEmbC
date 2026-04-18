@@ -37,8 +37,12 @@
 | CTest | CTest | CMakeに付属するテスト実行ツール。テストの発見と実行、結果のレポートを行う |
 | extern "C" | extern "C" | C++コード内でC言語の関数をリンクするための宣言。名前マングリングを抑制する |
 | FetchContent | FetchContent | CMakeの機能。外部ライブラリをビルド時に自動ダウンロードしてプロジェクトに組み込む |
-| FFF | Fake Function Framework | C/C++向けのフェイク関数生成フレームワーク。ヘッダファイル1つで利用可能 |
+| FFF | Fake Function Framework | C/C++向けのフェイク関数生成フレームワーク。ヘッダファイル1つ（fff.h）で利用可能。マクロでフェイク関数を定義し、呼び出し回数や引数の記録、戻り値の制御ができる |
 | FIRST原則 | FIRST Principles | 良いテストの特徴。Fast（高速）、Independent（独立）、Repeatable（再現可能）、Self-validating（自己検証）、Timely（適時） |
+| GMock | Google Mock | Google Testに付属するC++用のモックフレームワーク。C++のクラスに対してモックを生成する。C言語関数のモックには不向きなため、本教材ではFFFを使用 |
 | Google Test | Google Test (gtest) | Googleが開発したC++用テストフレームワーク。豊富なアサーションとテスト管理機能を持つ |
 | HAL | Hardware Abstraction Layer | ハードウェア抽象化層。ハードウェア固有の操作を抽象的なインターフェースで隠蔽する層 |
-| SOLID | SOLID | オブジェクト指向設計の5つの基本原則の頭文字。SRP, OCP, LSP, ISP, DIP |
+| SOLID | SOLID | オブジェクト指向設計の5つの基本原則の頭文字。SRP, OCP, LSP, ISP, DIP。C言語でも適用可能 |
+| ヘキサゴナルアーキテクチャ | Hexagonal Architecture | ポートアダプタパターンの別名。アプリケーションコアを六角形で表現し、各辺にポートとアダプタを配置する構造から名付けられた |
+| バイナリ | Binary | コンパイル・リンク済みの実行可能ファイル。ターゲット環境に転送して実行する |
+| 大規模言語モデル | Large Language Model (LLM) | 大量のテキストデータで学習したAIモデル。GitHub Copilot、ChatGPT、Claude等のコード生成AIの基盤技術 |
