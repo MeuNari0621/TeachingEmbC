@@ -38,3 +38,8 @@ gtest_discover_tests(test_temp_monitor)
 add_executable(test_event_fsm test_event_fsm.cpp)
 target_link_libraries(test_event_fsm gtest_main AppLibrary)
 gtest_discover_tests(test_event_fsm)
+
+# === test_state_transition（純粋関数化した状態遷移のテスト） ===
+add_executable(test_state_transition test_state_transition.cpp)
+target_link_libraries(test_state_transition gtest_main AppLibrary)
+gtest_discover_tests(test_state_transition)

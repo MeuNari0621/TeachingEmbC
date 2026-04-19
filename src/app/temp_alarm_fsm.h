@@ -1,9 +1,9 @@
 /**
  * @file temp_alarm_fsm.h
- * @brief 状態遷移・割り込み・イベント駆動の具体例
+ * @brief 状態遷移と ISR 分離の具体例
  *
- * 割り込みハンドラはイベントを発行するだけにし、
- * 本体ロジックは状態機械へ集約する。
+ * 状態遷移そのものは純粋関数として切り出し、
+ * ISR はイベントを発行する薄いラッパーに留める。
  */
 #ifndef TEMP_ALARM_FSM_H
 #define TEMP_ALARM_FSM_H
@@ -47,6 +47,7 @@ typedef struct {
 } temp_alarm_fsm_t;
 
 void temp_alarm_fsm_init(temp_alarm_fsm_t *fsm);
+temp_alarm_fsm_t temp_alarm_transition(const temp_alarm_fsm_t *current, const temp_alarm_event_t *event);
 void temp_alarm_fsm_dispatch(temp_alarm_fsm_t *fsm, const temp_alarm_event_t *event);
 
 /**

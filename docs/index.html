@@ -105,9 +105,9 @@ th { background: var(--primary-light); font-weight: 600; }
 <button type="button" class="tab-btn" data-tab="ch5">第5章<br>テスト容易性</button>
 <button type="button" class="tab-btn" data-tab="ch6">第6章<br>ポートアダプタ</button>
 <button type="button" class="tab-btn" data-tab="ch7">第7章<br>AI×TDD</button>
-<button type="button" class="tab-btn" data-tab="ch9">補講A<br>状態遷移</button>
-<button type="button" class="tab-btn" data-tab="ch10">補講B<br>ISR</button>
-<button type="button" class="tab-btn" data-tab="ch8">第8章<br>HTML安全</button>
+<button type="button" class="tab-btn" data-tab="ch8">第8章<br>状態遷移</button>
+<button type="button" class="tab-btn" data-tab="ch9">第9章<br>ISR</button>
+<button type="button" class="tab-btn" data-tab="ch10">第10章<br>HTML安全</button>
 <button type="button" class="tab-btn" data-action="glossary" id="glossaryBtn">用語集<br>ポップアップ</button>
 </nav>
 <div class="tab-panels">
@@ -277,10 +277,13 @@ graph TD
     SRC --> CMAKE_SRC["📄 CMakeLists.txt"]
     APP --> TEMP_H["📄 temperature.h/c — 純粋関数"]
     APP --> MON_H["📄 temp_monitor.h/c — オーケストレータ"]
+    APP --> FSM_H["📄 temp_alarm_fsm.h/c — 状態遷移"]
     HAL --> ADC_H["📄 hal_adc.h/c — ADC抽象化"]
     HAL --> GPIO_H["📄 hal_gpio.h/c — GPIO抽象化"]
     TEST --> TEST_APP["📄 test_app.cpp — 純粋関数テスト"]
     TEST --> TEST_DRV["📄 test_drv.cpp — FFF統合テスト"]
+    TEST --> TEST_FSM["📄 test_event_fsm.cpp — ISR/イベントテスト"]
+    TEST --> TEST_TRANS["📄 test_state_transition.cpp — 遷移純粋関数テスト"]
     TEST --> FFF_HF["📄 fff.h — フェイク生成ヘッダ"]
     style APP fill:#e8f5e9
     style HAL fill:#fff3e0
@@ -295,6 +298,7 @@ graph TB
         direction LR
         TEMP["temperature.c\n（純粋関数）"]
         MON["temp_monitor.c\n（オーケストレータ）"]
+        FSM["temp_alarm_fsm.c\n（状態遷移）"]
     end
     subgraph HalLayer["HAL層（ハードウェア抽象化）"]
         direction LR
@@ -309,6 +313,7 @@ graph TB
     MON --> TEMP
     MON --> ADC
     MON --> GPIO
+    FSM --> TEMP
     ADC --> SENSOR
     GPIO --> LED_HW
     style AppLayer fill:#e8f5e9,stroke:#2e7d32
@@ -317,7 +322,7 @@ graph TB
 </div>
 
 <div class="note">
-<strong>ポイント:</strong> アプリケーション層は HAL のヘッダファイル（インターフェース）のみに依存する。HAL の実装（.c）はリンク時に差し替え可能。
+<strong>ポイント:</strong> アプリケーション層は HAL のヘッダファイル（インターフェース）のみに依存する。HAL の実装（.c）はリンク時に差し替え可能です。
 </div>
 
 <h3>2.3 CMakeによるビルドシステム</h3>
@@ -327,18 +332,26 @@ graph TD
     ROOT_CM["CMakeLists.txt ルート\nenable_testing"] --> SRC_CMAKE["src/CMakeLists.txt\nAppLibrary + HalLibrary"]
     ROOT_CM --> TEST_CMAKE["Test/CMakeLists.txt\nテストバイナリ"]
     TEST_CMAKE --> FETCH["FetchContent\nGoogle Test v1.14.0\n自動ダウンロード"]
-    SRC_CMAKE --> APP_OBJ["AppLibrary\ntemperature.o, temp_monitor.o"]
+    SRC_CMAKE --> APP_OBJ["AppLibrary\ntemperature.o, temp_monitor.o, temp_alarm_fsm.o"]
     SRC_CMAKE --> HAL_OBJ["HalLibrary\nhal_adc.o, hal_gpio.o"]
     FETCH --> GTEST_LIB["gtest ライブラリ"]
-    TEST_CMAKE --> TEST1["test_temperature\n純粋関数テスト"]
-    TEST_CMAKE --> TEST2["test_temp_monitor\nFFF統合テスト"]
+    TEST_CMAKE --> TEST1["test_temperature"]
+    TEST_CMAKE --> TEST2["test_temp_monitor"]
+    TEST_CMAKE --> TEST3["test_event_fsm"]
+    TEST_CMAKE --> TEST4["test_state_transition"]
     APP_OBJ --> TEST1
+    APP_OBJ --> TEST3
+    APP_OBJ --> TEST4
     GTEST_LIB --> TEST1
     GTEST_LIB --> TEST2
+    GTEST_LIB --> TEST3
+    GTEST_LIB --> TEST4
     style ROOT_CM fill:#fff3e0
     style FETCH fill:#e3f2fd
     style TEST1 fill:#e8f5e9
     style TEST2 fill:#e8f5e9
+    style TEST3 fill:#e8f5e9
+    style TEST4 fill:#e8f5e9
 </div>
 
 <h3>ルート CMakeLists.txt</h3>
@@ -355,12 +368,15 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED YES)</code></pre>
 
 <div class="note">
-<strong>ポイント:</strong> <code>LANGUAGES C CXX</code> で、CとC++の両方を使うことを宣言。組み込みCのプロダクションコードはCで書き、テストコードはC++（Google Test）で書きます。
+<strong>ポイント:</strong> <code>LANGUAGES C CXX</code> で、CとC++の両方を使うことを宣言します。組み込みCのプロダクションコードはCで書き、テストコードはC++（Google Test）で書きます。
 </div>
 
 <h3>src/CMakeLists.txt</h3>
 <pre><code># === アプリケーション層 ===
-set(APP_SOURCES app/temperature.c app/temp_monitor.c)
+set(APP_SOURCES
+    app/temperature.c
+    app/temp_monitor.c
+    app/temp_alarm_fsm.c)
 add_library(AppLibrary STATIC ${APP_SOURCES})
 target_include_directories(AppLibrary PUBLIC app hal)
 
@@ -377,12 +393,10 @@ FetchContent_Declare(googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip)
 FetchContent_MakeAvailable(googletest)
 
-# 純粋関数テスト（フェイク不要）
 add_executable(test_temperature test_app.cpp)
 target_link_libraries(test_temperature gtest_main AppLibrary)
 gtest_discover_tests(test_temperature)
 
-# FFF 統合テスト（HAL をフェイクに差し替え）
 add_executable(test_temp_monitor test_drv.cpp)
 target_link_libraries(test_temp_monitor gtest_main)
 target_include_directories(test_temp_monitor PRIVATE
@@ -391,7 +405,15 @@ target_include_directories(test_temp_monitor PRIVATE
 target_sources(test_temp_monitor PRIVATE
     ${CMAKE_SOURCE_DIR}/src/app/temp_monitor.c
     ${CMAKE_SOURCE_DIR}/src/app/temperature.c)
-gtest_discover_tests(test_temp_monitor)</code></pre>
+gtest_discover_tests(test_temp_monitor)
+
+add_executable(test_event_fsm test_event_fsm.cpp)
+target_link_libraries(test_event_fsm gtest_main AppLibrary)
+gtest_discover_tests(test_event_fsm)
+
+add_executable(test_state_transition test_state_transition.cpp)
+target_link_libraries(test_state_transition gtest_main AppLibrary)
+gtest_discover_tests(test_state_transition)</code></pre>
 
 <div class="warn">
 <strong>重要:</strong> <code>test_temp_monitor</code> は HalLibrary をリンクしません。FFF がテストファイル内で HAL 関数のフェイク実装を生成するため、リンカエラーにならずにテストできます。
@@ -433,7 +455,7 @@ cmake ..
 cmake --build .
 ctest --output-on-failure
 
-# 実行結果: 100% tests passed, 0 tests failed out of 16</code></pre>
+# 実行結果: 100% tests passed, 0 tests failed out of 30</code></pre>
 </section>
 
 <!-- ===== 第3章 ===== -->
@@ -1282,12 +1304,47 @@ graph TD
 </div>
 </section>
 
-<!-- ===== 補講A ===== -->
-<section class="tab-content" id="ch9">
-<h2>補講A: 状態遷移の具体例</h2>
+<!-- ===== 第8章 ===== -->
+<section class="tab-content" id="ch8">
+<h2>第8章: 状態遷移の設計とテスト</h2>
 
-<p>温度アラームを状態機械で表現すると、分岐の意味を「今どの状態か」と「何のイベントが来たか」に分解できます。ここでは温度監視の流れを、停止中、監視中、アラーム中、センサ異常の4状態で表します。</p>
+<p>状態遷移は、組み込みアプリケーションの分岐を整理するための基本技法です。ここでは温度アラームを題材に、悪い例から始めて、純粋関数化、SOLID、DIP、そしてテスト戦略まで踏み込みます。</p>
 
+<h3>8.1 Before: 状態と副作用が混在したコード</h3>
+<div class="comparison">
+<div class="before-box">
+<strong>❌ Before: bad_state_machine.c</strong>
+<pre><code>if (g_sample_due) {
+    uint16_t raw = hal_adc_read(TEMP_ADC_CHANNEL);
+    int16_t temp = temperature_convert(raw);
+    g_last_temp_x10 = temp;
+
+    if (raw == 0 || raw >= 4095) {
+        g_alarm_state = 3;
+        hal_gpio_write(ALARM_LED_PIN, 1);
+    } else if (temp > TEMP_ALARM_THRESHOLD_X10) {
+        g_alarm_state = 2;
+        hal_gpio_write(ALARM_LED_PIN, 1);
+    }
+}</code></pre>
+</div>
+<div class="after-box">
+<strong>✅ After: 状態遷移と副作用計画を分離</strong>
+<pre><code>temp_alarm_fsm_t next = temp_alarm_transition(&current, &event);
+
+/* 状態遷移は純粋関数で決める */
+/* GPIO や ISR は外側で扱う */</code></pre>
+</div>
+</div>
+
+<table>
+<tr><th>Before の問題</th><th>影響</th></tr>
+<tr><td>状態判定と HAL 呼び出しが混在</td><td>ロジック単体のテストが難しい</td></tr>
+<tr><td>グローバル変数で状態を保持</td><td>テスト間の独立性が壊れる</td></tr>
+<tr><td>イベントの境界が曖昧</td><td>仕様変更時に分岐が散らばる</td></tr>
+</table>
+
+<h3>8.2 After: 状態遷移を純粋関数にする</h3>
 <div class="mermaid">
 stateDiagram-v2
     [*] --> IDLE
@@ -1304,7 +1361,6 @@ stateDiagram-v2
     SENSOR_FAULT --> IDLE: STOP
 </div>
 
-<h3>状態の役割</h3>
 <table>
 <tr><th>状態</th><th>意味</th><th>代表イベント</th></tr>
 <tr><td>IDLE</td><td>停止中。まだ監視していない</td><td>START</td></tr>
@@ -1313,86 +1369,125 @@ stateDiagram-v2
 <tr><td>SENSOR_FAULT</td><td>断線や張り付きなどの異常値を検出</td><td>ADC_READY, STOP</td></tr>
 </table>
 
-<h3>状態遷移の入口</h3>
-<pre><code>switch (event->type) {
-case TEMP_ALARM_EVENT_START:
-    fsm->state = TEMP_ALARM_STATE_MONITORING;
-    fsm->sample_requested = 1;
-    break;
-case TEMP_ALARM_EVENT_TIMER_TICK:
-    fsm->sample_requested = 1;
-    break;
-case TEMP_ALARM_EVENT_ADC_READY:
-    temp_alarm_apply_sample(fsm, event->raw_adc);
-    break;
-case TEMP_ALARM_EVENT_ACK_BUTTON:
-    fsm->state = TEMP_ALARM_STATE_MONITORING;
-    fsm->alarm_led_on = 0;
-    break;
+<h3>純粋関数としての状態遷移</h3>
+<pre><code>temp_alarm_fsm_t temp_alarm_transition(
+    const temp_alarm_fsm_t *current,
+    const temp_alarm_event_t *event) {
+    temp_alarm_fsm_t next = *current;
+
+    switch (event->type) {
+    case TEMP_ALARM_EVENT_ADC_READY:
+        next = temp_alarm_apply_sample(&next, event->raw_adc);
+        break;
+    case TEMP_ALARM_EVENT_ACK_BUTTON:
+        next.state = TEMP_ALARM_STATE_MONITORING;
+        next.alarm_led_on = 0;
+        break;
+    default:
+        break;
+    }
+
+    return next;
 }</code></pre>
 
 <div class="note">
-<strong>ポイント:</strong> 状態遷移を <code>temp_alarm_fsm_dispatch()</code> に集約すると、分岐がファイル全体に散らばらない。仕様変更が入っても、遷移表とテストを同じ視点で更新しやすい。
+<strong>純粋関数化の利点:</strong> 入力は「現在状態 + イベント」、出力は「次状態」です。外部I/Oを触らないため、同じ入力なら同じ結果になり、Google Test だけで検証できます。
 </div>
 
-<h3>サンプル値で状態を決めるロジック</h3>
-<pre><code>static void temp_alarm_apply_sample(temp_alarm_fsm_t *fsm, uint16_t raw_adc) {
-    if (!temperature_is_valid(raw_adc)) {
-        fsm->state = TEMP_ALARM_STATE_SENSOR_FAULT;
-        fsm->last_temp_x10 = TEMP_ALARM_ERROR_X10;
-        fsm->alarm_led_on = 1;
-        return;
-    }
+<h3>8.3 SOLID / DIP の観点</h3>
+<div class="comparison">
+<div class="before-box">
+<strong>❌ Before</strong>
+<ul>
+<li>状態判定、ADC読み取り、LED制御が1関数に混在</li>
+<li>イベント種別ではなく、ハードウェア都合で分岐</li>
+<li>HAL の具体実装に引きずられる</li>
+</ul>
+</div>
+<div class="after-box">
+<strong>✅ After</strong>
+<ul>
+<li><strong>SRP:</strong> <code>temp_alarm_transition()</code> は遷移だけを担当する</li>
+<li><strong>DIP:</strong> 状態機械は <code>temp_alarm_event_t</code> という抽象イベントに依存する</li>
+<li><strong>OCP:</strong> 新イベントは enum と switch の拡張で追加できる</li>
+</ul>
+</div>
+</div>
 
-    fsm->last_temp_x10 = temperature_convert(raw_adc);
-    if (temperature_is_over(fsm->last_temp_x10, TEMP_ALARM_THRESHOLD_X10)) {
-        fsm->state = TEMP_ALARM_STATE_ALARM;
-        fsm->alarm_led_on = 1;
-        return;
-    }
+<h3>8.4 純粋関数と副作用のテスト戦略</h3>
+<table>
+<tr><th>対象</th><th>性質</th><th>テスト方法</th></tr>
+<tr><td><code>temp_alarm_transition()</code></td><td>純粋関数</td><td>入力状態とイベントから次状態を比較する</td></tr>
+<tr><td><code>temp_alarm_fsm_dispatch()</code></td><td>薄いアダプタ</td><td>構造体更新の反映だけを見る</td></tr>
+<tr><td><code>temp_monitor_execute()</code></td><td>副作用あり</td><td>FFF で HAL をフェイク化し、GPIO 書き込みを検証する</td></tr>
+</table>
 
-    fsm->state = TEMP_ALARM_STATE_MONITORING;
-    fsm->alarm_led_on = 0;
-}</code></pre>
+<pre><code>TEST_F(TempAlarmTransitionTest, StartEventReturnsMonitoringWithoutMutatingInput) {
+    temp_alarm_event_t event = { TEMP_ALARM_EVENT_START, 0 };
 
-<h3>テストコード例</h3>
-<pre><code>TEST_F(TempAlarmFsmTest, AdcInterruptHighTemperatureTransitionsToAlarm) {
-    startMonitoring();
+    temp_alarm_fsm_t next = temp_alarm_transition(&current, &event);
 
-    temp_alarm_fsm_on_adc_interrupt(&fsm, 4000);
-
-    EXPECT_EQ(TEMP_ALARM_STATE_ALARM, fsm.state);
-    EXPECT_EQ(1, fsm.alarm_led_on);
+    EXPECT_EQ(TEMP_ALARM_STATE_IDLE, current.state);
+    EXPECT_EQ(TEMP_ALARM_STATE_MONITORING, next.state);
 }</code></pre>
 
 <p><strong>詳細版:</strong> <a href="md/10_state_transition_example.md">状態遷移の具体例</a></p>
 </section>
 
-<!-- ===== 補講B ===== -->
-<section class="tab-content" id="ch10">
-<h2>補講B: ISRの具体例</h2>
+<!-- ===== 第9章 ===== -->
+<section class="tab-content" id="ch9">
+<h2>第9章: ISR設計と副作用の分離</h2>
 
-<p>割り込みハンドラは短く保ち、重いロジックを通常関数へ逃がすのが基本です。ここではタイマ割り込み、ADC変換完了割り込み、ACKボタン割り込みの3つを例に、ISRで何をやるべきかを整理します。</p>
+<p>ISR は短く、決定論的で、責務が小さいほど扱いやすくなります。ここでは悪い ISR の具体例から始めて、イベント発行だけに絞った ISR へリファクタリングし、そのテスト戦略まで整理します。</p>
 
+<h3>9.1 Before: ISR の中で全部やってしまう</h3>
+<div class="comparison">
+<div class="before-box">
+<strong>❌ Before: bad_isr.c</strong>
+<pre><code>void TIM2_IRQHandler(void) {
+    uint16_t raw = hal_adc_read(TEMP_ADC_CHANNEL);
+    int16_t temp = temperature_convert(raw);
+
+    if (temp > TEMP_ALARM_THRESHOLD_X10) {
+        hal_gpio_write(ALARM_LED_PIN, 1);
+        uart_printf("alarm\n");
+    }
+
+    while (!adc_conversion_done()) {}
+}</code></pre>
+</div>
+<div class="after-box">
+<strong>✅ After: ISR はイベント通知だけ</strong>
+<pre><code>void temp_alarm_fsm_on_timer_interrupt(temp_alarm_fsm_t *fsm) {
+    const temp_alarm_event_t event = { TEMP_ALARM_EVENT_TIMER_TICK, 0 };
+    temp_alarm_fsm_dispatch(fsm, &event);
+}</code></pre>
+</div>
+</div>
+
+<h3>9.2 After: ISR を薄くし、ロジックは外へ出す</h3>
 <div class="mermaid">
 sequenceDiagram
     participant TimerISR as Timer ISR
     participant AdcISR as ADC ISR
     participant AckISR as ACK ISR
     participant FSM as temp_alarm_fsm_dispatch()
+    participant Pure as temp_alarm_transition()
     TimerISR->>FSM: TIMER_TICK
     AdcISR->>FSM: ADC_READY(raw_adc)
     AckISR->>FSM: ACK_BUTTON
-    FSM->>FSM: state / flag update
+    FSM->>Pure: current + event
+    Pure->>FSM: next state
 </div>
 
-<h3>ISRごとの役割</h3>
 <table>
 <tr><th>ISR</th><th>役割</th><th>イベント</th></tr>
 <tr><td>タイマ割り込み</td><td>周期サンプリングの要求を上げる</td><td>TIMER_TICK</td></tr>
 <tr><td>ADC完了割り込み</td><td>取得済みのADC値を状態機械へ渡す</td><td>ADC_READY</td></tr>
 <tr><td>ACKボタン割り込み</td><td>ユーザの確認入力を通知する</td><td>ACK_BUTTON</td></tr>
 </table>
+
+<blockquote>ロジックは純粋関数に、ハードウェアアクセスはHAL関数に分離する。イベント境界を揃えると、ISR でも通常関数でも同じ仕様で扱えます。</blockquote>
 
 <h3>ISRの実装例</h3>
 <pre><code>void temp_alarm_fsm_on_timer_interrupt(temp_alarm_fsm_t *fsm) {
@@ -1411,10 +1506,37 @@ void temp_alarm_fsm_on_ack_interrupt(temp_alarm_fsm_t *fsm) {
 }</code></pre>
 
 <div class="warn">
-<strong>ISRでやらないこと:</strong> 長いループ、複雑な分岐、フォーマット処理、ブロッキング待ち、複数モジュールへの直接書き込みは避ける。ISRが肥大化すると、応答性が落ち、ホストテストもしづらくなる。
+<strong>ISRでやらないこと:</strong> 長いループ、複雑な分岐、フォーマット処理、ブロッキング待ち、複数モジュールへの直接書き込みは避ける。ISRが肥大化すると、応答性が落ち、ホストテストもしづらくなります。
 </div>
 
-<h3>ISR由来イベントのテストコード例</h3>
+<h3>9.3 SOLID / DIP の観点</h3>
+<div class="comparison">
+<div class="before-box">
+<strong>❌ Before</strong>
+<ul>
+<li><strong>SRP違反:</strong> ISR が I/O、判定、ログ出力まで担当する</li>
+<li><strong>DIP違反:</strong> 割り込み入口が HAL や UART 具体実装へ直接依存する</li>
+<li>ホストテストしにくく、実機依存が強い</li>
+</ul>
+</div>
+<div class="after-box">
+<strong>✅ After</strong>
+<ul>
+<li><strong>SRP:</strong> ISR はイベントを作るだけにする</li>
+<li><strong>DIP:</strong> ISR は <code>temp_alarm_event_t</code> と <code>temp_alarm_fsm_dispatch()</code> に依存する</li>
+<li>副作用は別レイヤへ押し出せる</li>
+</ul>
+</div>
+</div>
+
+<h3>9.4 純粋関数と副作用をどうテストするか</h3>
+<table>
+<tr><th>対象</th><th>テスト観点</th><th>手段</th></tr>
+<tr><td><code>temp_alarm_fsm_on_timer_interrupt()</code></td><td>正しいイベントが dispatch されるか</td><td>構造体の変化を確認する</td></tr>
+<tr><td><code>temp_alarm_transition()</code></td><td>次状態が正しいか</td><td>純粋関数テスト</td></tr>
+<tr><td><code>temp_monitor_execute()</code></td><td>GPIO など副作用が正しいか</td><td>FFF で HAL をフェイク化</td></tr>
+</table>
+
 <pre><code>TEST_F(TempAlarmFsmTest, TimerInterruptRequestsSampleWithoutChangingState) {
     startMonitoring();
     fsm.sample_requested = 0;
@@ -1425,23 +1547,32 @@ void temp_alarm_fsm_on_ack_interrupt(temp_alarm_fsm_t *fsm) {
     EXPECT_EQ(1, fsm.sample_requested);
 }</code></pre>
 
+<pre><code>TEST_F(TempMonitorTest, SensorDisconnected_ReturnsError) {
+    hal_adc_read_fake.return_val = 0;
+
+    int16_t result = temp_monitor_execute();
+
+    EXPECT_EQ(result, -9999);
+    EXPECT_EQ(hal_gpio_write_fake.arg1_val, 1);
+}</code></pre>
+
 <p><strong>詳細版:</strong> <a href="md/11_isr_example.md">ISRの具体例</a></p>
 </section>
 
-<!-- ===== 第8章 ===== -->
-<section class="tab-content" id="ch8">
-<h2>第8章: HTMLセキュリティチェックリスト</h2>
+<!-- ===== 第10章 ===== -->
+<section class="tab-content" id="ch10">
+<h2>第10章: HTMLセキュリティチェックリスト</h2>
 
 <p>AI生成HTML、単体配布HTML、サンプルHTMLを開く前と公開前に使うための、汎用チェックリストです。説明できないコードや通信が1つでもあれば、その時点で実行を止めます。</p>
 
-<h3>8.1 最初に確認する3点</h3>
+<h3>10.1 最初に確認する3点</h3>
 <ol>
 <li><strong>何が実行されるか</strong>: <code>&lt;script&gt;</code>、イベント属性、タイマーを把握する</li>
 <li><strong>どこへ通信するか</strong>: 外部URL、CDN、API通信の有無を把握する</li>
 <li><strong>説明できるか</strong>: 説明できないコードやドメインが1つでもあれば実行を止める</li>
 </ol>
 
-<h3>8.2 汎用チェックリスト</h3>
+<h3>10.2 汎用チェックリスト</h3>
 <table>
 <tr><th>観点</th><th>確認内容</th><th>停止条件</th></tr>
 <tr><td>① スクリプト</td><td><code>&lt;script&gt;</code> の配置、外部JSのドメイン、バージョン固定、インラインJSの内容、<code>eval</code> / <code>Function</code> / <code>atob</code> の有無を確認する</td><td>内容や用途を説明できないJSがある</td></tr>
@@ -1456,7 +1587,7 @@ void temp_alarm_fsm_on_ack_interrupt(temp_alarm_fsm_t *fsm) {
 <tr><td>⑩ 実行環境</td><td>まずテキストで確認し、その後はネット遮断、必要ならVMやコンテナで確認する</td><td>中身未確認のままブラウザ実行する</td></tr>
 </table>
 
-<h3>8.3 安全側の修正パターン</h3>
+<h3>10.3 安全側の修正パターン</h3>
 <ul>
 <li>外部JS/CSSはローカル配置を優先し、バージョンを完全固定する</li>
 <li>インラインJavaScriptを避け、監査しやすい外部ファイルへ分離する</li>

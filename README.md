@@ -5,8 +5,8 @@
 ## ドキュメント
 
 - メインドキュメント: docs/index.html
-- 状態遷移の具体例: docs/md/10_state_transition_example.md
-- ISRの具体例: docs/md/11_isr_example.md
+- 第8章 状態遷移の具体例: docs/md/10_state_transition_example.md
+- 第9章 ISRの具体例: docs/md/11_isr_example.md
 - HTMLセキュリティチェックリスト: docs/md/09_html_security_checklist.md
 
 ## ドキュメント運用メモ

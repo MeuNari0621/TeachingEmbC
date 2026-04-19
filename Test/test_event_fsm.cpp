@@ -1,6 +1,6 @@
 /**
  * @file test_event_fsm.cpp
- * @brief 状態遷移・割り込み・イベント駆動のテスト
+ * @brief ISR ラッパーとイベント駆動アダプタのテスト
  */
 #include "gtest/gtest.h"
 
