@@ -4,6 +4,7 @@
 set(APP_SOURCES
     app/temperature.c
     app/temp_monitor.c
+    app/temp_alarm_fsm.c
 )
 
 add_library(AppLibrary STATIC ${APP_SOURCES})

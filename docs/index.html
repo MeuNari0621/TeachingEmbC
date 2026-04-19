@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self';">
+<meta name="referrer" content="no-referrer">
 <title>組み込みC TDD教材 — Google Test × AI駆動開発</title>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
 :root {
     --primary: #1565c0;
@@ -30,17 +31,16 @@ header h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
 header p { opacity: 0.9; font-size: 0.95rem; }
 
 /* Tabs */
-.tab-container { max-width: 1100px; margin: 0 auto; padding: 0 1rem; }
-.tab-nav { display: flex; flex-wrap: wrap; gap: 2px; background: var(--surface); border-radius: var(--radius) var(--radius) 0 0; box-shadow: var(--shadow); margin-top: -1.5rem; position: relative; z-index: 10; overflow-x: auto; }
-.tab-btn { flex: 1; min-width: 120px; padding: 0.9rem 0.5rem; border: none; background: var(--surface); cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); transition: all 0.2s; border-bottom: 3px solid transparent; white-space: nowrap; }
+.tab-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem 1rem 2rem; display: flex; gap: 1.5rem; align-items: flex-start; }
+.tab-nav { width: 240px; display: flex; flex-direction: column; gap: 0.35rem; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 0.75rem; position: fixed; top: 1rem; left: max(1rem, calc((100vw - 1400px) / 2 + 1rem)); max-height: calc(100vh - 2rem); overflow-y: auto; z-index: 20; }
+.tab-btn { width: 100%; padding: 0.95rem 0.9rem; border: none; border-left: 3px solid transparent; border-radius: calc(var(--radius) - 2px); background: var(--surface); cursor: pointer; font-size: 0.9rem; color: var(--text-secondary); transition: all 0.2s; text-align: left; }
 .tab-btn:hover { background: var(--primary-light); color: var(--primary); }
-.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
-.tab-content { display: none; background: var(--surface); padding: 2rem; border-radius: 0 0 var(--radius) var(--radius); box-shadow: var(--shadow); margin-bottom: 2rem; }
+.tab-btn.active { color: var(--primary); background: var(--primary-light); border-left-color: var(--primary); font-weight: 600; }
+.tab-panels { flex: 1; min-width: 0; margin-left: calc(240px + 1.5rem); }
+.tab-content { display: none; background: var(--surface); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 2rem; }
 .tab-content.active { display: block; }
 
 /* Glossary */
-.glossary-btn { position: fixed; bottom: 2rem; right: 2rem; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: #fff; border: none; cursor: pointer; font-size: 1.5rem; box-shadow: 0 4px 12px rgba(21,101,192,0.3); z-index: 1000; transition: transform 0.2s; }
-.glossary-btn:hover { transform: scale(1.1); }
 .glossary-popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(90vw, 650px); max-height: 80vh; background: var(--surface); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 1001; overflow: hidden; }
 .glossary-popup.show { display: block; }
 .glossary-header { padding: 1rem; background: var(--primary); color: #fff; display: flex; align-items: center; gap: 1rem; }
@@ -74,13 +74,17 @@ th { background: var(--primary-light); font-weight: 600; }
 .comparison > div { padding: 1rem; border-radius: var(--radius); }
 .before-box { background: var(--danger-light); border: 1px solid #ef9a9a; }
 .after-box { background: var(--success-light); border: 1px solid #a5d6a7; }
-@media (max-width: 768px) {
-    .tab-btn { min-width: 100px; font-size: 0.75rem; padding: 0.7rem 0.3rem; }
+@media (max-width: 900px) {
+    .tab-container { display: block; max-width: 1100px; padding-top: 0; }
+    .tab-nav { width: auto; position: static; max-height: none; flex-direction: row; flex-wrap: nowrap; gap: 2px; margin-top: -1.5rem; overflow-x: auto; padding: 0; border-radius: var(--radius) var(--radius) 0 0; }
+    .tab-btn { min-width: 110px; font-size: 0.75rem; padding: 0.7rem 0.4rem; text-align: center; border-left: none; border-bottom: 3px solid transparent; border-radius: 0; }
+    .tab-btn.active { border-left-color: transparent; border-bottom-color: var(--primary); }
+    .tab-panels { min-width: 0; margin-left: 0; }
     .tab-content { padding: 1rem; }
     .comparison { grid-template-columns: 1fr; }
 }
 @media print {
-    .tab-nav, .glossary-btn { display: none; }
+    .tab-nav { display: none; }
     .tab-content { display: block !important; page-break-inside: avoid; }
 }
 </style>
@@ -94,14 +98,19 @@ th { background: var(--primary-light); font-weight: 600; }
 
 <div class="tab-container">
 <nav class="tab-nav">
-<button class="tab-btn active" data-tab="ch1">第1章<br>はじめに</button>
-<button class="tab-btn" data-tab="ch2">第2章<br>環境構築</button>
-<button class="tab-btn" data-tab="ch3">第3章<br>Google Test</button>
-<button class="tab-btn" data-tab="ch4">第4章<br>FFF</button>
-<button class="tab-btn" data-tab="ch5">第5章<br>テスト容易性</button>
-<button class="tab-btn" data-tab="ch6">第6章<br>ポートアダプタ</button>
-<button class="tab-btn" data-tab="ch7">第7章<br>AI×TDD</button>
+<button type="button" class="tab-btn active" data-tab="ch1">第1章<br>はじめに</button>
+<button type="button" class="tab-btn" data-tab="ch2">第2章<br>環境構築</button>
+<button type="button" class="tab-btn" data-tab="ch3">第3章<br>Google Test</button>
+<button type="button" class="tab-btn" data-tab="ch4">第4章<br>FFF</button>
+<button type="button" class="tab-btn" data-tab="ch5">第5章<br>テスト容易性</button>
+<button type="button" class="tab-btn" data-tab="ch6">第6章<br>ポートアダプタ</button>
+<button type="button" class="tab-btn" data-tab="ch7">第7章<br>AI×TDD</button>
+<button type="button" class="tab-btn" data-tab="ch9">補講A<br>状態遷移</button>
+<button type="button" class="tab-btn" data-tab="ch10">補講B<br>ISR</button>
+<button type="button" class="tab-btn" data-tab="ch8">第8章<br>HTML安全</button>
+<button type="button" class="tab-btn" data-action="glossary" id="glossaryBtn">用語集<br>ポップアップ</button>
 </nav>
+<div class="tab-panels">
 
 <!-- ===== 第1章 ===== -->
 <section class="tab-content active" id="ch1">
@@ -1273,15 +1282,200 @@ graph TD
 </div>
 </section>
 
+<!-- ===== 補講A ===== -->
+<section class="tab-content" id="ch9">
+<h2>補講A: 状態遷移の具体例</h2>
+
+<p>温度アラームを状態機械で表現すると、分岐の意味を「今どの状態か」と「何のイベントが来たか」に分解できます。ここでは温度監視の流れを、停止中、監視中、アラーム中、センサ異常の4状態で表します。</p>
+
+<div class="mermaid">
+stateDiagram-v2
+    [*] --> IDLE
+    IDLE --> MONITORING: START
+    MONITORING --> MONITORING: TIMER_TICK
+    MONITORING --> ALARM: ADC_READY(高温)
+    MONITORING --> SENSOR_FAULT: ADC_READY(異常値)
+    ALARM --> MONITORING: ACK_BUTTON
+    ALARM --> ALARM: ADC_READY(高温継続)
+    ALARM --> MONITORING: ADC_READY(正常)
+    SENSOR_FAULT --> MONITORING: ADC_READY(正常)
+    MONITORING --> IDLE: STOP
+    ALARM --> IDLE: STOP
+    SENSOR_FAULT --> IDLE: STOP
+</div>
+
+<h3>状態の役割</h3>
+<table>
+<tr><th>状態</th><th>意味</th><th>代表イベント</th></tr>
+<tr><td>IDLE</td><td>停止中。まだ監視していない</td><td>START</td></tr>
+<tr><td>MONITORING</td><td>通常監視中。次のサンプルを待つ</td><td>TIMER_TICK, ADC_READY</td></tr>
+<tr><td>ALARM</td><td>高温検出済み。LED を点灯</td><td>ACK_BUTTON, ADC_READY</td></tr>
+<tr><td>SENSOR_FAULT</td><td>断線や張り付きなどの異常値を検出</td><td>ADC_READY, STOP</td></tr>
+</table>
+
+<h3>状態遷移の入口</h3>
+<pre><code>switch (event->type) {
+case TEMP_ALARM_EVENT_START:
+    fsm->state = TEMP_ALARM_STATE_MONITORING;
+    fsm->sample_requested = 1;
+    break;
+case TEMP_ALARM_EVENT_TIMER_TICK:
+    fsm->sample_requested = 1;
+    break;
+case TEMP_ALARM_EVENT_ADC_READY:
+    temp_alarm_apply_sample(fsm, event->raw_adc);
+    break;
+case TEMP_ALARM_EVENT_ACK_BUTTON:
+    fsm->state = TEMP_ALARM_STATE_MONITORING;
+    fsm->alarm_led_on = 0;
+    break;
+}</code></pre>
+
+<div class="note">
+<strong>ポイント:</strong> 状態遷移を <code>temp_alarm_fsm_dispatch()</code> に集約すると、分岐がファイル全体に散らばらない。仕様変更が入っても、遷移表とテストを同じ視点で更新しやすい。
+</div>
+
+<h3>サンプル値で状態を決めるロジック</h3>
+<pre><code>static void temp_alarm_apply_sample(temp_alarm_fsm_t *fsm, uint16_t raw_adc) {
+    if (!temperature_is_valid(raw_adc)) {
+        fsm->state = TEMP_ALARM_STATE_SENSOR_FAULT;
+        fsm->last_temp_x10 = TEMP_ALARM_ERROR_X10;
+        fsm->alarm_led_on = 1;
+        return;
+    }
+
+    fsm->last_temp_x10 = temperature_convert(raw_adc);
+    if (temperature_is_over(fsm->last_temp_x10, TEMP_ALARM_THRESHOLD_X10)) {
+        fsm->state = TEMP_ALARM_STATE_ALARM;
+        fsm->alarm_led_on = 1;
+        return;
+    }
+
+    fsm->state = TEMP_ALARM_STATE_MONITORING;
+    fsm->alarm_led_on = 0;
+}</code></pre>
+
+<h3>テストコード例</h3>
+<pre><code>TEST_F(TempAlarmFsmTest, AdcInterruptHighTemperatureTransitionsToAlarm) {
+    startMonitoring();
+
+    temp_alarm_fsm_on_adc_interrupt(&fsm, 4000);
+
+    EXPECT_EQ(TEMP_ALARM_STATE_ALARM, fsm.state);
+    EXPECT_EQ(1, fsm.alarm_led_on);
+}</code></pre>
+
+<p><strong>詳細版:</strong> <a href="md/10_state_transition_example.md">状態遷移の具体例</a></p>
+</section>
+
+<!-- ===== 補講B ===== -->
+<section class="tab-content" id="ch10">
+<h2>補講B: ISRの具体例</h2>
+
+<p>割り込みハンドラは短く保ち、重いロジックを通常関数へ逃がすのが基本です。ここではタイマ割り込み、ADC変換完了割り込み、ACKボタン割り込みの3つを例に、ISRで何をやるべきかを整理します。</p>
+
+<div class="mermaid">
+sequenceDiagram
+    participant TimerISR as Timer ISR
+    participant AdcISR as ADC ISR
+    participant AckISR as ACK ISR
+    participant FSM as temp_alarm_fsm_dispatch()
+    TimerISR->>FSM: TIMER_TICK
+    AdcISR->>FSM: ADC_READY(raw_adc)
+    AckISR->>FSM: ACK_BUTTON
+    FSM->>FSM: state / flag update
+</div>
+
+<h3>ISRごとの役割</h3>
+<table>
+<tr><th>ISR</th><th>役割</th><th>イベント</th></tr>
+<tr><td>タイマ割り込み</td><td>周期サンプリングの要求を上げる</td><td>TIMER_TICK</td></tr>
+<tr><td>ADC完了割り込み</td><td>取得済みのADC値を状態機械へ渡す</td><td>ADC_READY</td></tr>
+<tr><td>ACKボタン割り込み</td><td>ユーザの確認入力を通知する</td><td>ACK_BUTTON</td></tr>
+</table>
+
+<h3>ISRの実装例</h3>
+<pre><code>void temp_alarm_fsm_on_timer_interrupt(temp_alarm_fsm_t *fsm) {
+    const temp_alarm_event_t event = { TEMP_ALARM_EVENT_TIMER_TICK, 0 };
+    temp_alarm_fsm_dispatch(fsm, &event);
+}
+
+void temp_alarm_fsm_on_adc_interrupt(temp_alarm_fsm_t *fsm, uint16_t raw_adc) {
+    const temp_alarm_event_t event = { TEMP_ALARM_EVENT_ADC_READY, raw_adc };
+    temp_alarm_fsm_dispatch(fsm, &event);
+}
+
+void temp_alarm_fsm_on_ack_interrupt(temp_alarm_fsm_t *fsm) {
+    const temp_alarm_event_t event = { TEMP_ALARM_EVENT_ACK_BUTTON, 0 };
+    temp_alarm_fsm_dispatch(fsm, &event);
+}</code></pre>
+
+<div class="warn">
+<strong>ISRでやらないこと:</strong> 長いループ、複雑な分岐、フォーマット処理、ブロッキング待ち、複数モジュールへの直接書き込みは避ける。ISRが肥大化すると、応答性が落ち、ホストテストもしづらくなる。
+</div>
+
+<h3>ISR由来イベントのテストコード例</h3>
+<pre><code>TEST_F(TempAlarmFsmTest, TimerInterruptRequestsSampleWithoutChangingState) {
+    startMonitoring();
+    fsm.sample_requested = 0;
+
+    temp_alarm_fsm_on_timer_interrupt(&fsm);
+
+    EXPECT_EQ(TEMP_ALARM_STATE_MONITORING, fsm.state);
+    EXPECT_EQ(1, fsm.sample_requested);
+}</code></pre>
+
+<p><strong>詳細版:</strong> <a href="md/11_isr_example.md">ISRの具体例</a></p>
+</section>
+
+<!-- ===== 第8章 ===== -->
+<section class="tab-content" id="ch8">
+<h2>第8章: HTMLセキュリティチェックリスト</h2>
+
+<p>AI生成HTML、単体配布HTML、サンプルHTMLを開く前と公開前に使うための、汎用チェックリストです。説明できないコードや通信が1つでもあれば、その時点で実行を止めます。</p>
+
+<h3>8.1 最初に確認する3点</h3>
+<ol>
+<li><strong>何が実行されるか</strong>: <code>&lt;script&gt;</code>、イベント属性、タイマーを把握する</li>
+<li><strong>どこへ通信するか</strong>: 外部URL、CDN、API通信の有無を把握する</li>
+<li><strong>説明できるか</strong>: 説明できないコードやドメインが1つでもあれば実行を止める</li>
+</ol>
+
+<h3>8.2 汎用チェックリスト</h3>
+<table>
+<tr><th>観点</th><th>確認内容</th><th>停止条件</th></tr>
+<tr><td>① スクリプト</td><td><code>&lt;script&gt;</code> の配置、外部JSのドメイン、バージョン固定、インラインJSの内容、<code>eval</code> / <code>Function</code> / <code>atob</code> の有無を確認する</td><td>内容や用途を説明できないJSがある</td></tr>
+<tr><td>② 外部通信</td><td><code>fetch</code> / <code>XMLHttpRequest</code> / <code>WebSocket</code> と送信先URLを確認する</td><td>ローカルHTMLなのに不要な通信がある</td></tr>
+<tr><td>③ 外部リソース</td><td><code>&lt;script&gt;</code> / <code>&lt;link&gt;</code> / <code>&lt;img&gt;</code> のURLを一覧化し、信頼できる配布元と完全固定版のみ使う</td><td><code>latest</code> や未固定版を使っている</td></tr>
+<tr><td>④ フォーム・入力</td><td><code>&lt;form&gt;</code> の送信先、入力値の送信有無、パスワードやトークン欄の必要性を確認する</td><td>入力値の送信先が不明</td></tr>
+<tr><td>⑤ 自動実行</td><td><code>onload</code> / <code>onerror</code>、<code>setTimeout</code> / <code>setInterval</code> の用途を確認する</td><td>ページ表示だけで不明な処理が走る</td></tr>
+<tr><td>⑥ 埋め込み</td><td><code>&lt;iframe&gt;</code> や外部埋め込み先URLを確認する</td><td>出所不明の外部サイトを埋め込んでいる</td></tr>
+<tr><td>⑦ 難読化</td><td>Base64、圧縮済み以外の読めない短縮コード、説明不能な難読化を確認する</td><td>読めないJSがある</td></tr>
+<tr><td>⑧ ローカル環境</td><td><code>localhost</code>、<code>127.0.0.1</code>、開発用APIへのアクセスが残っていないか確認する</td><td>開発者環境だけを狙う通信がある</td></tr>
+<tr><td>⑨ 権限API</td><td>クリップボード、通知、カメラ、マイクなどの利用有無と必要性を確認する</td><td>必要性を説明できない権限要求がある</td></tr>
+<tr><td>⑩ 実行環境</td><td>まずテキストで確認し、その後はネット遮断、必要ならVMやコンテナで確認する</td><td>中身未確認のままブラウザ実行する</td></tr>
+</table>
+
+<h3>8.3 安全側の修正パターン</h3>
+<ul>
+<li>外部JS/CSSはローカル配置を優先し、バージョンを完全固定する</li>
+<li>インラインJavaScriptを避け、監査しやすい外部ファイルへ分離する</li>
+<li><code>connect-src 'none'</code> などの CSP を使い、不要な外部通信をブラウザ側でも止める</li>
+<li>変更後はネット遮断状態でも期待通り動くことを確認する</li>
+</ul>
+
+<p><strong>詳細版:</strong> <a href="md/09_html_security_checklist.md">HTMLセキュリティチェックリスト</a></p>
+</section>
+
+</div>
 </div><!-- tab-container -->
 
 <!-- Glossary Button & Popup -->
-<button class="glossary-btn" id="glossaryBtn" title="用語集">📖</button>
 <div class="overlay" id="overlay"></div>
 <div class="glossary-popup" id="glossaryPopup">
 <div class="glossary-header">
 <input type="text" id="glossarySearch" placeholder="🔍 用語を検索...">
-<button class="glossary-close" id="glossaryClose">&times;</button>
+<button type="button" class="glossary-close" id="glossaryClose" aria-label="用語集を閉じる">&times;</button>
 </div>
 <div class="glossary-body">
 <table>
@@ -1332,57 +1526,8 @@ graph TD
 </table>
 </div>
 </div>
-
-<script>
-mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
-
-/* Tab navigation */
-document.querySelectorAll('.tab-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-        document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
-        btn.classList.add('active');
-        var tab = document.getElementById(btn.dataset.tab);
-        tab.classList.add('active');
-        mermaid.run({ nodes: tab.querySelectorAll('.mermaid:not([data-processed])') });
-    });
-});
-
-/* Glossary popup */
-var glossaryBtn = document.getElementById('glossaryBtn');
-var glossaryPopup = document.getElementById('glossaryPopup');
-var glossaryClose = document.getElementById('glossaryClose');
-var overlay = document.getElementById('overlay');
-var glossarySearch = document.getElementById('glossarySearch');
-
-function openGlossary() {
-    glossaryPopup.classList.add('show');
-    overlay.classList.add('show');
-    glossarySearch.focus();
-}
-function closeGlossary() {
-    glossaryPopup.classList.remove('show');
-    overlay.classList.remove('show');
-    glossarySearch.value = '';
-    filterGlossary('');
-}
-glossaryBtn.addEventListener('click', openGlossary);
-glossaryClose.addEventListener('click', closeGlossary);
-overlay.addEventListener('click', closeGlossary);
-
-function filterGlossary(query) {
-    var rows = document.querySelectorAll('#glossaryBody tr');
-    var q = query.toLowerCase();
-    rows.forEach(function(row) {
-        var text = row.textContent.toLowerCase();
-        row.classList.toggle('hidden', q.length > 0 && text.indexOf(q) === -1);
-    });
-}
-glossarySearch.addEventListener('input', function() { filterGlossary(this.value); });
-
-/* Initial mermaid render for active tab */
-mermaid.run({ nodes: document.querySelectorAll('#ch1 .mermaid') });
-</script>
+<script src="assets/vendor/mermaid.min.js"></script>
+<script src="assets/index.js"></script>
 
 </body>
 </html>

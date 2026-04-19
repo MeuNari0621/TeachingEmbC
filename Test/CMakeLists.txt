@@ -33,3 +33,8 @@ target_sources(test_temp_monitor PRIVATE
     ${CMAKE_SOURCE_DIR}/src/app/temperature.c
 )
 gtest_discover_tests(test_temp_monitor)
+
+# === test_event_fsm（状態遷移・割り込み・イベント駆動のテスト） ===
+add_executable(test_event_fsm test_event_fsm.cpp)
+target_link_libraries(test_event_fsm gtest_main AppLibrary)
+gtest_discover_tests(test_event_fsm)
