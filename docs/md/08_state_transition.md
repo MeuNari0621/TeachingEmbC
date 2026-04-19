@@ -1,14 +1,14 @@
-# 状態遷移の具体例
+# 第8章: 状態遷移の設計とテスト
 
-温度アラームを題材に、状態機械で仕様を表現する具体例です。ここでは Before/After、SOLID、DIP、純粋関数化、テスト戦略までまとめて扱います。
+ここから実践編です。第2章で整理したテスト容易性、第3章で設計した境界、第4章と第5章で押さえたテスト手法を、温度アラームの状態機械へまとめて適用します。ここでは Before/After、SOLID、DIP、純粋関数化、テスト戦略までまとめて扱います。
 
-## ねらい
+## 8.1 ねらい
 
 - 状態遷移を図と表で説明できるようにする
 - 遷移ロジックと副作用を分離する
 - 純粋関数として状態遷移をテストできるようにする
 
-## Before: 状態と副作用が混在したコード
+## 8.2 Before: 状態と副作用が混在したコード
 
 bad_state_machine.c では、ADC 読み取り、グローバル更新、状態判定、LED 制御が 1 か所に混在します。
 
@@ -34,11 +34,11 @@ if (g_sample_due) {
 - HAL とロジックが混在し、純粋関数テストできない
 - 仕様変更時に分岐が散らばる
 
-## After: 状態遷移を純粋関数にする
+## 8.3 After: 状態遷移を純粋関数にする
 
 After では、現在状態とイベントから次状態を返す `temp_alarm_transition()` を中心に据えます。
 
-## 状態一覧
+## 8.4 状態一覧
 
 | 状態 | 意味 | 代表イベント |
 |------|------|-------------|
@@ -47,7 +47,7 @@ After では、現在状態とイベントから次状態を返す `temp_alarm_t
 | ALARM | 高温検出済み | ACK_BUTTON, ADC_READY |
 | SENSOR_FAULT | センサ異常 | ADC_READY, STOP |
 
-## 状態遷移図
+## 8.5 状態遷移図
 
 ```mermaid
 stateDiagram-v2
@@ -65,7 +65,7 @@ stateDiagram-v2
     SENSOR_FAULT --> IDLE: STOP
 ```
 
-## 遷移の入口
+## 8.6 遷移の入口
 
 ```c
 temp_alarm_fsm_t temp_alarm_transition(
@@ -98,7 +98,7 @@ temp_alarm_fsm_t temp_alarm_transition(
 }
 ```
 
-## サンプル値で状態を決める処理
+## 8.7 サンプル値で状態を決める処理
 
 ```c
 static temp_alarm_fsm_t temp_alarm_apply_sample(
@@ -129,7 +129,7 @@ static temp_alarm_fsm_t temp_alarm_apply_sample(
 }
 ```
 
-## SOLID / DIP の観点
+## 8.8 SOLID / DIP の観点
 
 ### S: 単一責任の原則
 
@@ -145,11 +145,11 @@ static temp_alarm_fsm_t temp_alarm_apply_sample(
 
 - 新しいイベントを追加するときは enum と switch を拡張するだけでよい
 
-## 純粋関数化とテスト
+## 8.9 純粋関数化とテスト
 
 `temp_alarm_transition()` は入力を変更せず、次状態を返します。これは状態遷移を純粋関数として扱うためです。
 
-## テストコード例
+## 8.10 テストコード例
 
 ```cpp
 TEST_F(TempAlarmTransitionTest, StartEventReturnsMonitoringWithoutMutatingInput) {
@@ -169,7 +169,7 @@ TEST_F(TempAlarmTransitionTest, StartEventReturnsMonitoringWithoutMutatingInput)
 - イベントごとの次状態が正しいこと
 - LED やサンプル要求のような「副作用計画」が状態データとして返ること
 
-## 副作用をどう扱うか
+## 8.11 副作用をどう扱うか
 
 状態遷移そのものは純粋関数でテストし、実際の GPIO 書き込みなどの副作用は別レイヤで扱います。たとえば `temp_monitor_execute()` の副作用は FFF で HAL をフェイク化してテストします。
 
@@ -184,7 +184,7 @@ TEST_F(TempMonitorTest, SensorDisconnected_ReturnsError) {
 }
 ```
 
-## 読み方のポイント
+## 8.12 読み方のポイント
 
 1. temp_alarm_transition を読むと、遷移の純粋ロジックが分かる
 2. temp_alarm_apply_sample を読むと、温度サンプルから状態が決まる流れが分かる

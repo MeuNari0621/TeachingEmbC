@@ -33,6 +33,8 @@ header p { opacity: 0.9; font-size: 0.95rem; }
 /* Tabs */
 .tab-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem 1rem 2rem; display: flex; gap: 1.5rem; align-items: flex-start; }
 .tab-nav { width: 240px; display: flex; flex-direction: column; gap: 0.35rem; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 0.75rem; position: fixed; top: 1rem; left: max(1rem, calc((100vw - 1400px) / 2 + 1rem)); max-height: calc(100vh - 2rem); overflow-y: auto; z-index: 20; }
+.tab-group-label { margin: 0.65rem 0 0.2rem; padding: 0 0.2rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-secondary); text-transform: uppercase; }
+.tab-group-label:first-child { margin-top: 0; }
 .tab-btn { width: 100%; padding: 0.95rem 0.9rem; border: none; border-left: 3px solid transparent; border-radius: calc(var(--radius) - 2px); background: var(--surface); cursor: pointer; font-size: 0.9rem; color: var(--text-secondary); transition: all 0.2s; text-align: left; }
 .tab-btn:hover { background: var(--primary-light); color: var(--primary); }
 .tab-btn.active { color: var(--primary); background: var(--primary-light); border-left-color: var(--primary); font-weight: 600; }
@@ -77,6 +79,7 @@ th { background: var(--primary-light); font-weight: 600; }
 @media (max-width: 900px) {
     .tab-container { display: block; max-width: 1100px; padding-top: 0; }
     .tab-nav { width: auto; position: static; max-height: none; flex-direction: row; flex-wrap: nowrap; gap: 2px; margin-top: -1.5rem; overflow-x: auto; padding: 0; border-radius: var(--radius) var(--radius) 0 0; }
+    .tab-group-label { display: none; }
     .tab-btn { min-width: 110px; font-size: 0.75rem; padding: 0.7rem 0.4rem; text-align: center; border-left: none; border-bottom: 3px solid transparent; border-radius: 0; }
     .tab-btn.active { border-left-color: transparent; border-bottom-color: var(--primary); }
     .tab-panels { min-width: 0; margin-left: 0; }
@@ -93,20 +96,24 @@ th { background: var(--primary-light); font-weight: 600; }
 
 <header>
 <h1>組み込みC テスト駆動開発 教材</h1>
-<p>Google Test × FFF × AI駆動開発 — ベストプラクティスを Before/After で学ぶ</p>
+<p>純粋関数・ポートアダプタ・Google Test・FFF・状態遷移・ISR を、一般論から具体例へ段階的に学ぶ</p>
 </header>
 
 <div class="tab-container">
 <nav class="tab-nav">
-<button type="button" class="tab-btn active" data-tab="ch1">第1章<br>はじめに</button>
-<button type="button" class="tab-btn" data-tab="ch2">第2章<br>環境構築</button>
-<button type="button" class="tab-btn" data-tab="ch3">第3章<br>Google Test</button>
-<button type="button" class="tab-btn" data-tab="ch4">第4章<br>FFF</button>
-<button type="button" class="tab-btn" data-tab="ch5">第5章<br>テスト容易性</button>
-<button type="button" class="tab-btn" data-tab="ch6">第6章<br>ポートアダプタ</button>
+<div class="tab-group-label">原理</div>
+<button type="button" class="tab-btn active" data-tab="ch1">第1章<br>全体像</button>
+<button type="button" class="tab-btn" data-tab="ch2">第2章<br>テスト容易性</button>
+<button type="button" class="tab-btn" data-tab="ch3">第3章<br>ポートアダプタ</button>
+<div class="tab-group-label">道具</div>
+<button type="button" class="tab-btn" data-tab="ch4">第4章<br>Google Test</button>
+<button type="button" class="tab-btn" data-tab="ch5">第5章<br>FFF</button>
+<button type="button" class="tab-btn" data-tab="ch6">第6章<br>環境構築</button>
+<div class="tab-group-label">実践</div>
 <button type="button" class="tab-btn" data-tab="ch7">第7章<br>AI×TDD</button>
 <button type="button" class="tab-btn" data-tab="ch8">第8章<br>状態遷移</button>
 <button type="button" class="tab-btn" data-tab="ch9">第9章<br>ISR</button>
+<div class="tab-group-label">補助資料</div>
 <button type="button" class="tab-btn" data-tab="ch10">第10章<br>HTML安全</button>
 <button type="button" class="tab-btn" data-action="glossary" id="glossaryBtn">用語集<br>ポップアップ</button>
 </nav>
@@ -114,7 +121,7 @@ th { background: var(--primary-light); font-weight: 600; }
 
 <!-- ===== 第1章 ===== -->
 <section class="tab-content active" id="ch1">
-<h2>第1章: なぜ組み込みCでTDDが必要か</h2>
+<h2>第1章: 全体像と学習ロードマップ</h2>
 
 <h3>1.1 組み込み開発の課題</h3>
 <div class="danger">
@@ -147,7 +154,7 @@ graph TD
 
 <div class="mermaid">
 graph LR
-    subgraph Host["🖥️ ホスト環境（PC）"]
+    ROOT_CM["CMakeLists.txt ルート\ninclude(CTest)"] --> SRC_CMAKE["src/CMakeLists.txt\nAppLibrary + HalLibrary"]
         GT["Google Test"]
         FFF_H["FFF（フェイク生成）"]
         SRC["Cソースコード"]
@@ -237,8 +244,31 @@ graph LR
 <tr><td>AI 活用</td><td>AI にテストとコードを生成させ、人間がレビューする開発フローを実践できる</td></tr>
 </table>
 
-<h3>1.6 本教材で使う題材</h3>
-<p>温度監視システムを例に学びます。</p>
+<h3>1.6 この教材の進み方</h3>
+<p>本HTMLは、一般論から具体例へ進む順で読みやすく再構成しています。まず「なぜテストしにくいのか」を整理し、その次に「どう境界を設計するか」を学び、最後に状態遷移や割り込みの具体例へ進みます。</p>
+<div class="mermaid">
+graph TD
+    G0["第1章 全体像"] --> G1["第2章 テスト容易性"]
+    G1 --> G2["第3章 ポートアダプタ"]
+    G2 --> G3["第4章 Google Test"]
+    G3 --> G4["第5章 FFF"]
+    G4 --> G5["第7章 AI×TDD"]
+    G5 --> G6["第8章 状態遷移"]
+    G6 --> G7["第9章 ISR"]
+    S0["第6章 環境構築・ビルド"] -. 補助 .-> G3
+    style G0 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style G1 fill:#e8f5e9
+    style G2 fill:#e8f5e9
+    style G3 fill:#fff3e0
+    style G4 fill:#fff3e0
+    style G5 fill:#e3f2fd
+    style G6 fill:#c8e6c9
+    style G7 fill:#c8e6c9
+    style S0 fill:#f5f5f5,stroke:#9e9e9e
+</div>
+
+<h3>1.7 本教材で使う題材</h3>
+<p>温度監視システムを例に学びます。前半では純粋関数、HAL、ポートアダプタを整理し、後半で同じ題材を状態遷移や割り込みの具体例へ発展させます。</p>
 <div class="mermaid">
 graph LR
     SENSOR["🌡️ 温度センサ\n（ADC入力）"] --> CONVERT["📐 温度変換\n（純粋関数）"]
@@ -251,11 +281,13 @@ graph LR
 </div>
 </section>
 
-<!-- ===== 第2章 ===== -->
-<section class="tab-content" id="ch2">
-<h2>第2章: 環境構築</h2>
+<!-- ===== 第6章（環境構築） ===== -->
+<section class="tab-content" id="ch6">
+<h2>第6章: 環境構築とビルド</h2>
 
-<h3>2.1 必要なツール</h3>
+<p>ここまでの原理と設計を、実際に回すためのビルド環境をまとめて確認します。考え方を先に押さえたうえで環境を見ると、なぜこの構成が必要かが理解しやすくなります。</p>
+
+<h3>6.1 必要なツール</h3>
 <table>
 <tr><th>ツール</th><th>用途</th><th>インストール方法</th></tr>
 <tr><td>GCC / G++</td><td>C/C++ コンパイラ</td><td><code>sudo apt install build-essential</code></td></tr>
@@ -264,17 +296,21 @@ graph LR
 <tr><td>FFF (fff.h)</td><td>フェイク関数生成</td><td>ヘッダファイル1つを配置</td></tr>
 </table>
 
-<h3>2.2 プロジェクト構成</h3>
+<h3>6.2 プロジェクト構成</h3>
 <div class="mermaid">
 graph TD
     ROOT["📁 プロジェクトルート"] --> SRC["📁 src/"]
     ROOT --> TEST["📁 Test/"]
     ROOT --> DOCS["📁 docs/"]
     ROOT --> CMAKE_ROOT["📄 CMakeLists.txt"]
+    ROOT --> PRESET["📄 CMakePresets.json"]
+    ROOT --> VSCODE_DIR["📁 .vscode/"]
     SRC --> APP["📁 app/ — アプリケーション層"]
     SRC --> HAL["📁 hal/ — HAL層"]
     SRC --> BEFORE["📁 before/ — 悪い例（教材用）"]
     SRC --> CMAKE_SRC["📄 CMakeLists.txt"]
+    VSCODE_DIR --> VSCODE_SETTINGS["📄 settings.json"]
+    VSCODE_DIR --> VSCODE_EXT["📄 extensions.json"]
     APP --> TEMP_H["📄 temperature.h/c — 純粋関数"]
     APP --> MON_H["📄 temp_monitor.h/c — オーケストレータ"]
     APP --> FSM_H["📄 temp_alarm_fsm.h/c — 状態遷移"]
@@ -325,7 +361,7 @@ graph TB
 <strong>ポイント:</strong> アプリケーション層は HAL のヘッダファイル（インターフェース）のみに依存する。HAL の実装（.c）はリンク時に差し替え可能です。
 </div>
 
-<h3>2.3 CMakeによるビルドシステム</h3>
+<h3>6.3 CMakeによるビルドシステム</h3>
 <h3>CMakeのビルドフロー</h3>
 <div class="mermaid">
 graph TD
@@ -357,7 +393,7 @@ graph TD
 <h3>ルート CMakeLists.txt</h3>
 <pre><code>cmake_minimum_required(VERSION 3.29)
 project(MyMixedProject LANGUAGES C CXX)
-enable_testing()
+include(CTest)
 
 add_subdirectory(src)
 add_subdirectory(Test)
@@ -368,7 +404,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED YES)</code></pre>
 
 <div class="note">
-<strong>ポイント:</strong> <code>LANGUAGES C CXX</code> で、CとC++の両方を使うことを宣言します。組み込みCのプロダクションコードはCで書き、テストコードはC++（Google Test）で書きます。
+<strong>ポイント:</strong> <code>LANGUAGES C CXX</code> で、CとC++の両方を使うことを宣言します。<code>include(CTest)</code> を使うことで、CTest と VS Code の Testing ビューからテストを見つけやすくします。
 </div>
 
 <h3>src/CMakeLists.txt</h3>
@@ -419,7 +455,7 @@ gtest_discover_tests(test_state_transition)</code></pre>
 <strong>重要:</strong> <code>test_temp_monitor</code> は HalLibrary をリンクしません。FFF がテストファイル内で HAL 関数のフェイク実装を生成するため、リンカエラーにならずにテストできます。
 </div>
 
-<h3>2.4 ホスト環境とターゲット環境の違い</h3>
+<h3>6.4 ホスト環境とターゲット環境の違い</h3>
 <div class="mermaid">
 graph LR
     subgraph Host_ENV["🖥️ ホスト（PC / x86_64）"]
@@ -449,20 +485,73 @@ graph LR
 <li><strong>エンディアン</strong>: リトルエンディアン/ビッグエンディアンの差に注意</li>
 </ul>
 
-<h3>2.5 ビルドと実行</h3>
+<h3>6.5 ビルドと実行</h3>
 <pre><code>mkdir build && cd build
 cmake ..
 cmake --build .
 ctest --output-on-failure
 
 # 実行結果: 100% tests passed, 0 tests failed out of 30</code></pre>
+
+<h3>6.6 VS Code GUI でビルドとテスト</h3>
+<p>このワークスペースでは、<code>CMakePresets.json</code> と <code>.vscode/settings.json</code> により、CMake Tools の GUI から同じ build ディレクトリと test preset を使えるようにしています。</p>
+
+<ol>
+<li>ワークスペースを開き、推奨拡張機能の CMake Tools と C/C++ を有効にする</li>
+<li>ステータスバーかコマンドパレットで Configure を実行し、preset は <code>default</code> を使う</li>
+<li>Build ボタンでビルドし、Testing ビューまたは CMake の Run Tests でテストを実行する</li>
+<li>Testing ビューで 30 テストの PASS/FAIL を確認する</li>
+</ol>
+
+<p><strong>確認済み:</strong> このワークスペースでは、VS Code の CMake Tools で <code>default</code> preset を選択後、Build と Run Tests の両方が成功します。</p>
+
+<div class="note">
+<strong>補足:</strong> GUI 操作でも、実際に使われる build/test の定義は <code>CMakePresets.json</code> の <code>default</code> preset に集約されています。
+</div>
+
+<h3>6.7 VS Code GUI のトラブルシュート</h3>
+<ul>
+<li><code>No configure preset is active for this CMake project</code> と出たら、CMake Tools の configure preset を <code>default</code> に切り替えてから Configure を再実行する</li>
+<li>Testing ビューにテストが出ない、または古い設定を拾う場合は Configure を再実行し、必要なら <code>build/</code> を作り直す</li>
+<li>このワークスペースはルート <code>CMakeLists.txt</code> で <code>include(CTest)</code> を使っており、GUI 側のテスト検出もこの前提で揃えている</li>
+</ul>
+
+<h3>6.8 Google Tests ビューでのテスト実行</h3>
+<p><code>davidschuldenfrei.gtest-adapter</code> を使う場合は、<code>.vscode/launch.json</code> に定義した各 Google Test バイナリの launch 構成を読み込みます。</p>
+
+<ol>
+<li>推奨拡張機能の GoogleTest Adapter を有効にする</li>
+<li><code>default</code> preset で一度ビルドし、<code>build/Test/</code> にテスト実行ファイルを生成する</li>
+<li>Test Explorer で <code>test_temperature</code>、<code>test_temp_monitor</code>、<code>test_event_fsm</code>、<code>test_state_transition</code> を実行する</li>
+</ol>
+
+<div class="note">
+<strong>補足:</strong> <code>.vscode/settings.json</code> の <code>gtest-adapter.debugConfig</code> に 4 本の launch 構成名を列挙し、<code>.vscode/launch.json</code> の <code>GTest: ...</code> 構成が <code>build/Test/*.exe</code> を直接指すようにしています。Windows のデバッグは MinGW の <code>gdb.exe</code> を使います。
+</div>
+
+<h4>6.8.1 Test Explorer での確認手順</h4>
+<ol>
+<li>ビルド後に Test Explorer を開き、必要ならテスト一覧を再読込する</li>
+<li><code>test_temperature</code>、<code>test_temp_monitor</code>、<code>test_event_fsm</code>、<code>test_state_transition</code> の4バイナリが見えることを確認する</li>
+<li>まず <code>test_temperature</code> または <code>test_state_transition</code> を単体実行して動作確認する</li>
+<li>最後に全体実行し、合計 30 テストが通ることを確認する</li>
+</ol>
+
+<ul>
+<li>テスト一覧が空なら、先に <code>build/Test/</code> に実行ファイルが生成されているか確認する</li>
+<li>再ビルド直後に一覧更新が追いつかない場合は、Test Explorer から再読込を明示的に実行する</li>
+<li><code>You first need to define a debug configuration, for your tests</code> と出る場合は、<code>.vscode/launch.json</code> が未反映のことが多いので、ワークスペース再読込後に Refresh する</li>
+<li><code>gtest-adapter.debugConfig</code> は拡張側の設定スキーマ不整合により警告表示されることがあるが、実装自体は配列を正しく読み取る</li>
+</ul>
 </section>
 
-<!-- ===== 第3章 ===== -->
-<section class="tab-content" id="ch3">
-<h2>第3章: Google Test の基本</h2>
+<!-- ===== 第4章（Google Test） ===== -->
+<section class="tab-content" id="ch4">
+<h2>第4章: Google Test で純粋関数を検証する</h2>
 
-<h3>3.1 extern "C" と名前マングリング</h3>
+<p>ここから道具の章です。まずは副作用を持たない純粋関数を、Google Test だけでどう検証するかを押さえます。</p>
+
+<h3>4.1 extern "C" と名前マングリング</h3>
 <p>C++ コンパイラは関数名を「名前マングリング」で装飾します（例: <code>add(int, int)</code> → <code>_Z3addii</code>）。<code>extern "C"</code> で「この関数はC言語の命名規則で探す」と指示する必要があります。</p>
 
 <div class="comparison">
@@ -478,7 +567,7 @@ ctest --output-on-failure
 </div>
 </div>
 
-<h3>3.2 TEST マクロ（最もシンプル）</h3>
+<h3>4.2 TEST マクロ（最もシンプル）</h3>
 <pre><code>#include "gtest/gtest.h"
 
 extern "C" {
@@ -493,7 +582,7 @@ TEST(TemperatureConvert, ZeroInput) {
 <li>第2引数: テストケース名（テストの目的）</li>
 </ul>
 
-<h3>3.3 TEST_F マクロ（フィクスチャ付き）</h3>
+<h3>4.3 TEST_F マクロ（フィクスチャ付き）</h3>
 <pre><code>class TemperatureConvertTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -526,7 +615,7 @@ sequenceDiagram
     Note over GTest: 次のテストケースへ
 </div>
 
-<h3>3.4 主要なアサーションマクロ</h3>
+<h3>4.4 主要なアサーションマクロ</h3>
 <table>
 <tr><th>マクロ</th><th>意味</th><th>失敗時の動作</th></tr>
 <tr><td><code>EXPECT_EQ(expected, actual)</code></td><td>等しい</td><td>テスト続行</td></tr>
@@ -544,7 +633,7 @@ sequenceDiagram
 <strong>EXPECT vs ASSERT:</strong> <code>EXPECT_*</code> は失敗してもテストを続行し、全ての失敗を報告します。<code>ASSERT_*</code> は失敗した時点でテストを中断します。
 </div>
 
-<h3>3.5 実例: 純粋関数のテスト</h3>
+<h3>4.5 実例: 純粋関数のテスト</h3>
 <pre><code>// test_app.cpp — 純粋関数テスト（フェイク不要）
 #include "gtest/gtest.h"
 
@@ -572,7 +661,7 @@ TEST_F(TemperatureConvertTest, MaxRawValue) {
 <strong>ポイント:</strong> 純粋関数は入力と出力だけを検証すればよいため、フェイクもモックも不要。これが「テスト容易性」の好例です。
 </div>
 
-<h3>3.6 テスト設計: 境界値</h3>
+<h3>4.6 テスト設計: 境界値</h3>
 <div class="mermaid">
 graph LR
     subgraph Boundary["temperature_is_valid の境界値テスト"]
@@ -600,7 +689,7 @@ TEST_F(TemperatureIsValidTest, MaxIsInvalid) {
     EXPECT_EQ(0, temperature_is_valid(4095));
 }</code></pre>
 
-<h3>3.7 FIRST 原則</h3>
+<h3>4.7 FIRST 原則</h3>
 <div class="mermaid">
 graph TD
     FIRST["FIRST 原則"] --> F["F: Fast\n高速に実行できる"]
@@ -618,7 +707,7 @@ graph TD
 
 <table>
 <tr><th>原則</th><th>説明</th><th>本教材での実践</th></tr>
-<tr><td>Fast</td><td>ミリ秒単位で完了</td><td>16テストが0.04秒で完了</td></tr>
+<tr><td>Fast</td><td>ミリ秒単位で完了</td><td>30テストが約2秒で完了</td></tr>
 <tr><td>Independent</td><td>テスト間で状態を共有しない</td><td>SetUp() で毎回リセット</td></tr>
 <tr><td>Repeatable</td><td>環境に依存しない</td><td>HAL をフェイク化して環境非依存</td></tr>
 <tr><td>Self-validating</td><td>PASS/FAIL が自動判定</td><td>EXPECT_EQ 等で自動チェック</td></tr>
@@ -626,11 +715,13 @@ graph TD
 </table>
 </section>
 
-<!-- ===== 第4章 ===== -->
-<section class="tab-content" id="ch4">
-<h2>第4章: FFF によるフェイク関数</h2>
+<!-- ===== 第5章（FFF） ===== -->
+<section class="tab-content" id="ch5">
+<h2>第5章: FFF で副作用を検証する</h2>
 
-<h3>4.1 なぜフェイクが必要か</h3>
+<p>次に、副作用を持つ関数をどうテストするかを扱います。ここでは HAL を FFF で差し替え、呼び出し回数や引数まで検証する流れを整理します。</p>
+
+<h3>5.1 なぜフェイクが必要か</h3>
 <p>組み込みCでは、多くの関数がハードウェアにアクセスする「副作用」を持ちます。これらの関数はホスト環境では実行できません。</p>
 
 <div class="mermaid">
@@ -649,7 +740,7 @@ graph LR
     style Solution fill:#e8f5e9
 </div>
 
-<h3>4.2 FFF の基本</h3>
+<h3>5.2 FFF の基本</h3>
 <pre><code>#include "fff.h"
 DEFINE_FFF_GLOBALS;  // テストファイルに1つ
 
@@ -674,7 +765,7 @@ graph TD
     style STRUCT fill:#fff3e0
 </div>
 
-<h3>4.3 テスト前のリセット</h3>
+<h3>5.3 テスト前のリセット</h3>
 <pre><code>class TempMonitorTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -690,7 +781,7 @@ protected:
 <strong>重要:</strong> <code>RESET_FAKE</code> で各フェイクの呼び出しカウントや引数履歴をリセット。<code>FFF_RESET_HISTORY</code> で呼び出し順序の履歴もリセット。FIRST 原則の <strong>Independent</strong> を実現。
 </div>
 
-<h3>4.4 テストパターン</h3>
+<h3>5.4 テストパターン</h3>
 
 <h3>パターン1: 戻り値の制御（スタブ）</h3>
 <pre><code>TEST_F(TempMonitorTest, NormalTemperature_LedOff) {
@@ -723,7 +814,7 @@ protected:
     EXPECT_EQ(hal_gpio_write_fake.arg1_val, 1);      // アラーム ON
 }</code></pre>
 
-<h3>4.5 テストダブルの分類</h3>
+<h3>5.5 テストダブルの分類</h3>
 <div class="mermaid">
 graph TD
     TD["テストダブル"] --> FAKE["フェイク\n簡易的な実装"]
@@ -744,7 +835,7 @@ graph TD
 <tr><td>フェイク</td><td><code>hal_adc_read_fake.custom_fake = my_impl;</code></td></tr>
 </table>
 
-<h3>4.6 FFF vs 他のアプローチ</h3>
+<h3>5.6 FFF vs 他のアプローチ</h3>
 <table>
 <tr><th>アプローチ</th><th>長所</th><th>短所</th></tr>
 <tr><td>FFF</td><td>ヘッダ1つで導入、C関数に対応</td><td>C++機能は限定的</td></tr>
@@ -754,11 +845,13 @@ graph TD
 </table>
 </section>
 
-<!-- ===== 第5章 ===== -->
-<section class="tab-content" id="ch5">
-<h2>第5章: テスト容易性とベストプラクティス</h2>
+<!-- ===== 第2章（テスト容易性） ===== -->
+<section class="tab-content" id="ch2">
+<h2>第2章: テスト容易性の原則とベストプラクティス</h2>
 
-<h3>5.1 悪い例（Before）— テスト困難なコード</h3>
+<p>ここでは、なぜコードがテストしにくくなるのかを Before/After で整理します。後続のポートアダプタ、Google Test、FFF、状態遷移、ISR の章は、すべてこの原則の延長にあります。</p>
+
+<h3>2.1 悪い例（Before）— テスト困難なコード</h3>
 
 <div class="danger">
 <strong>❌ Before: bad_temp.c — 全ての問題が詰まった典型例</strong>
@@ -806,7 +899,7 @@ graph TD
     style P4 fill:#ffcdd2
 </div>
 
-<h3>5.2 良い例（After）— テスト容易な設計</h3>
+<h3>2.2 良い例（After）— テスト容易な設計</h3>
 
 <div class="mermaid">
 graph TD
@@ -850,7 +943,7 @@ int temperature_is_valid(uint16_t raw_adc) {
     return temp;
 }</code></pre>
 
-<h3>5.3 Before vs After 比較</h3>
+<h3>2.3 Before vs After 比較</h3>
 <div class="comparison">
 <div class="before-box">
 <strong>❌ Before</strong>
@@ -876,7 +969,7 @@ int temperature_is_valid(uint16_t raw_adc) {
 </div>
 </div>
 
-<h3>5.4 純粋関数 vs 副作用 — 詳細</h3>
+<h3>2.4 純粋関数 vs 副作用 — 詳細</h3>
 
 <div class="comparison">
 <div class="after-box">
@@ -895,7 +988,7 @@ EXPECT_EQ(hal_gpio_write_fake.arg1_val, 1);</code></pre>
 </div>
 </div>
 
-<h3>5.5 移植性の確保</h3>
+<h3>2.5 移植性の確保</h3>
 <div class="mermaid">
 graph TD
     subgraph App_Layer["アプリケーション"]
@@ -937,7 +1030,7 @@ graph TD
 <tr><td><code>volatile</code> は HAL 内に限定</td><td>最適化の影響を限定</td><td>HAL 実装の中だけで使用</td></tr>
 </table>
 
-<h3>5.6 SOLID 原則（C言語への適用）</h3>
+<h3>2.6 SOLID 原則（C言語への適用）</h3>
 
 <h3>S: 単一責任の原則（SRP）</h3>
 <div class="comparison">
@@ -971,13 +1064,13 @@ graph TD
     style IF_G fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
 </div>
 
-<h3>5.7 リファクタリングの手順</h3>
+<h3>2.7 リファクタリングの手順</h3>
 <div class="mermaid">
 graph TD
     S1["1️⃣ 純粋関数を抽出\n変換ロジックを独立関数に"] --> S2["2️⃣ HALを定義\nハードウェアアクセスをラップ"]
     S2 --> S3["3️⃣ グローバル変数を排除\n引数と戻り値に置き換え"]
     S3 --> S4["4️⃣ テストを書く\n純粋関数 → FFF統合"]
-    S4 --> S5["5️⃣ 全テストを実行\n16テスト全パス"]
+    S4 --> S5["5️⃣ 全テストを実行\n30テスト全パス"]
     style S1 fill:#e8f5e9
     style S2 fill:#e8f5e9
     style S3 fill:#e8f5e9
@@ -990,11 +1083,47 @@ graph TD
 </div>
 </section>
 
-<!-- ===== 第6章 ===== -->
-<section class="tab-content" id="ch6">
-<h2>第6章: ポートアダプタパターン</h2>
+<!-- ===== 第3章（ポートアダプタ） ===== -->
+<section class="tab-content" id="ch3">
+<h2>第3章: ポートアダプタで境界を設計する</h2>
 
-<h3>6.1 ポートアダプタとは</h3>
+<p>第2章で見た「テストしにくさ」の原因を、アーキテクチャとしてどう断ち切るかを扱います。ここで境界を設計しておくことで、後続の Google Test、FFF、状態遷移、ISR の具体例が素直に組み立てられます。</p>
+
+<h3>3.1 Before: アプリケーションがターゲット実装を直接知っている</h3>
+<p>ポートアダプタ導入前は、アプリケーションがターゲット別 API を直接呼びがちです。</p>
+
+<div class="comparison">
+<div class="before-box">
+<strong>❌ Before: bad_port_adapter.c</strong>
+<pre><code>void bad_temp_app_step(void) {
+#if defined(TARGET_STM32)
+    uint16_t raw = stm32_adc_read_blocking();
+    if (raw > 3000) {
+        stm32_gpio_write(ALARM_LED_PIN, 1);
+    }
+#elif defined(TARGET_NRF52)
+    uint16_t raw = nrf_saadc_sample_blocking();
+    if (raw > 3000) {
+        nrf_gpio_pin_write(ALARM_LED_PIN, 1);
+    }
+#endif
+}</code></pre>
+</div>
+<div class="after-box">
+<strong>✅ After: ポートを通して境界を固定する</strong>
+<pre><code>uint16_t raw_adc = hal_adc_read(TEMP_ADC_CHANNEL);
+hal_gpio_write(ALARM_LED_PIN, alarm_on);</code></pre>
+</div>
+</div>
+
+<table>
+<tr><th>Before の問題</th><th>影響</th></tr>
+<tr><td>アプリがターゲット別 API を直接知っている</td><td>移植時にアプリケーションコードまで修正が必要になる</td></tr>
+<tr><td>差し替え境界がない</td><td>ホストテストがしにくい</td></tr>
+<tr><td>ターゲット分岐が上位へ漏れる</td><td>責務が混ざり見通しが悪くなる</td></tr>
+</table>
+
+<h3>3.2 ポートアダプタとは</h3>
 <p>ポートアダプタパターン（別名: ヘキサゴナルアーキテクチャ）は、アプリケーションのコアロジックを外部依存から分離する設計パターンです。</p>
 
 <div class="mermaid">
@@ -1024,7 +1153,7 @@ graph TD
     style Adapters_PA fill:#fff3e0,stroke:#ef6c00
 </div>
 
-<h3>6.2 本教材での実現</h3>
+<h3>3.3 本教材での実現</h3>
 <table>
 <tr><th>概念</th><th>実装</th><th>ファイル</th></tr>
 <tr><td>アプリケーションコア</td><td>純粋関数群</td><td><code>temperature.c</code></td></tr>
@@ -1061,23 +1190,64 @@ graph TD
     style AdapterFiles_PA fill:#fff3e0,stroke:#ef6c00
 </div>
 
-<h3>6.3 DIP との関係</h3>
-<div class="mermaid">
-graph LR
-    DIP_R["DIP\n（設計原則）"] -->|"アーキテクチャに適用"| PA_R["ポートアダプタ\n（設計パターン）"]
-    PA_R -->|"C言語で実現"| HAL_R["HAL + リンカ差し替え"]
-    style DIP_R fill:#e3f2fd
-    style PA_R fill:#e8f5e9
-    style HAL_R fill:#fff3e0
+<h3>3.4 SOLID / DIP の観点</h3>
+<div class="comparison">
+<div class="before-box">
+<strong>❌ Before</strong>
+<ul>
+<li><strong>SRP違反:</strong> アプリがロジックとターゲット制御の両方を担当する</li>
+<li><strong>DIP違反:</strong> 上位が <code>stm32_*</code> や <code>nrf_*</code> の具体 API に依存する</li>
+<li>新ターゲット追加で上位層まで修正が波及する</li>
+</ul>
+</div>
+<div class="after-box">
+<strong>✅ After</strong>
+<ul>
+<li><strong>SRP:</strong> コアロジックとハードウェア差分を分ける</li>
+<li><strong>DIP:</strong> 上位は <code>hal_adc.h</code> と <code>hal_gpio.h</code> に依存する</li>
+<li><strong>OCP:</strong> 新しいターゲットはアダプタ追加で拡張できる</li>
+</ul>
+</div>
 </div>
 
-<h3>6.4 新しいターゲットへの移植手順</h3>
+<h3>3.5 副作用とテストをどう分けるか</h3>
+<pre><code>int16_t temp_monitor_execute(void) {
+    uint16_t raw_adc = hal_adc_read(TEMP_ADC_CHANNEL);
+
+    if (!temperature_is_valid(raw_adc)) {
+        hal_gpio_write(ALARM_LED_PIN, 1);
+        return TEMP_MONITOR_ERROR;
+    }
+
+    int16_t temp_x10 = temperature_convert(raw_adc);
+    hal_gpio_write(ALARM_LED_PIN,
+                   temperature_is_over(temp_x10, TEMP_ALARM_THRESHOLD_X10));
+    return temp_x10;
+}</code></pre>
+
+<table>
+<tr><th>対象</th><th>役割</th><th>テスト方法</th></tr>
+<tr><td><code>temperature.c</code></td><td>純粋関数</td><td>Google Test だけで直接テストする</td></tr>
+<tr><td><code>temp_monitor.c</code></td><td>ポートを使うオーケストレータ</td><td>FFF で HAL を差し替えて検証する</td></tr>
+<tr><td><code>hal_adc.c</code>, <code>hal_gpio.c</code></td><td>実機アダプタ</td><td>実機で結合確認する</td></tr>
+</table>
+
+<pre><code>TEST_F(TempMonitorTest, HighTemperature_LedOn) {
+    hal_adc_read_fake.return_val = 4000;
+
+    int16_t result = temp_monitor_execute();
+
+    EXPECT_GT(result, TEMP_ALARM_THRESHOLD_X10);
+    EXPECT_EQ(1, hal_gpio_write_fake.arg1_val);
+}</code></pre>
+
+<h3>3.6 新しいターゲットへの移植手順</h3>
 <div class="mermaid">
 graph TD
-    ST1["1️⃣ HAL ヘッダを確認"] --> ST2["2️⃣ 新アダプタを作成\nhal_adc_nrf.c 等"]
-    ST2 --> ST3["3️⃣ CMake を修正"]
-    ST3 --> ST4["4️⃣ ホストテストは変更なし"]
-    ST4 --> ST5["5️⃣ ターゲットでビルド"]
+    ST1["1️⃣ HAL ヘッダを確認\nhal_adc.h / hal_gpio.h を固定"] --> ST2["2️⃣ 新アダプタを作成\nhal_adc_nrf.c など"]
+    ST2 --> ST3["3️⃣ CMake を修正\nリンクする実装を切り替える"]
+    ST3 --> ST4["4️⃣ ホストテストを再実行\nFFF フェイクはそのまま"]
+    ST4 --> ST5["5️⃣ ターゲットで結合確認"]
     style ST1 fill:#e3f2fd
     style ST2 fill:#e8f5e9
     style ST3 fill:#fff3e0
@@ -1086,10 +1256,10 @@ graph TD
 </div>
 
 <div class="note">
-<strong>ポイント:</strong> アプリケーションコード（<code>temperature.c</code>, <code>temp_monitor.c</code>）は一切変更不要。HAL の実装ファイルだけを追加すれば、新しいハードウェアに対応可能。
+<strong>ポイント:</strong> アプリケーションコード（<code>temperature.c</code>, <code>temp_monitor.c</code>）は変更せず、HAL の実装ファイルだけを追加・差し替える形に保つのが重要です。
 </div>
 
-<h3>6.5 テスト戦略</h3>
+<h3>3.7 テスト戦略</h3>
 <div class="mermaid">
 graph TD
     subgraph TestStrategy_PA["テスト戦略"]
@@ -1097,8 +1267,8 @@ graph TD
         L2_PA["レベル2: FFF統合テスト\n（HALをフェイク化）"]
         L3_PA["レベル3: ターゲットテスト\n（実機で結合テスト）"]
     end
-    L1_PA -->|"100%ホスト"| HOST1_PA["test_temperature\n11テスト"]
-    L2_PA -->|"100%ホスト"| HOST2_PA["test_temp_monitor\n5テスト"]
+    L1_PA -->|"100%ホスト"| HOST1_PA["test_temperature + test_state_transition\n純粋関数系"]
+    L2_PA -->|"100%ホスト"| HOST2_PA["test_temp_monitor + test_event_fsm\n境界/イベント系"]
     L3_PA -->|"実機"| TARGET_PA["手動テスト"]
     style L1_PA fill:#e8f5e9
     style L2_PA fill:#e3f2fd
@@ -1107,19 +1277,21 @@ graph TD
 
 <table>
 <tr><th>レベル</th><th>対象</th><th>方法</th><th>カバー範囲</th></tr>
-<tr><td>純粋関数テスト</td><td><code>temperature.c</code></td><td>Google Test のみ</td><td>ロジック100%</td></tr>
-<tr><td>FFF統合テスト</td><td><code>temp_monitor.c</code></td><td>Google Test + FFF</td><td>統合フロー</td></tr>
+<tr><td>純粋関数テスト</td><td><code>temperature.c</code>, <code>temp_alarm_transition()</code></td><td>Google Test のみ</td><td>変換・判定・遷移ロジック</td></tr>
+<tr><td>FFF統合テスト</td><td><code>temp_monitor.c</code>, ISR/イベントラッパ</td><td>Google Test + FFF</td><td>ポート境界とイベント伝搬</td></tr>
 <tr><td>ターゲットテスト</td><td>HAL 実装</td><td>実機 + JTAG</td><td>ハードウェア接続</td></tr>
 </table>
 
 <div class="note">
-<strong>目標:</strong> レベル1 と レベル2 でバグの90%以上を検出し、ターゲットテストは最小限にする。
+<strong>目標:</strong> レベル1 と レベル2 でバグの大半を検出し、ターゲットテストは接続確認と最終保証に集中する。
 </div>
 </section>
 
 <!-- ===== 第7章 ===== -->
 <section class="tab-content" id="ch7">
 <h2>第7章: AI駆動開発とTDD</h2>
+
+<p>第2章から第6章までで整理した設計原則とテスト手法を、日々の実装サイクルでどう回すかを扱います。次の第8章、第9章に進む前に、AI を使っても設計とテストの主導権を失わない流れをここで固めます。</p>
 
 <h3>7.1 なぜ AI 時代に TDD が重要か</h3>
 <div class="mermaid">
@@ -1308,7 +1480,7 @@ graph TD
 <section class="tab-content" id="ch8">
 <h2>第8章: 状態遷移の設計とテスト</h2>
 
-<p>状態遷移は、組み込みアプリケーションの分岐を整理するための基本技法です。ここでは温度アラームを題材に、悪い例から始めて、純粋関数化、SOLID、DIP、そしてテスト戦略まで踏み込みます。</p>
+<p>ここから実践編です。第2章で整理したテスト容易性、第3章で設計した境界、第4章と第5章で押さえたテスト手法を、温度アラームの状態機械へまとめて適用します。悪い例から始めて、純粋関数化、SOLID、DIP、そしてテスト戦略まで一気につなげます。</p>
 
 <h3>8.1 Before: 状態と副作用が混在したコード</h3>
 <div class="comparison">
@@ -1431,14 +1603,14 @@ stateDiagram-v2
     EXPECT_EQ(TEMP_ALARM_STATE_MONITORING, next.state);
 }</code></pre>
 
-<p><strong>詳細版:</strong> <a href="md/10_state_transition_example.md">状態遷移の具体例</a></p>
+<p><strong>詳細版:</strong> <a href="md/08_state_transition.md">状態遷移の具体例</a></p>
 </section>
 
 <!-- ===== 第9章 ===== -->
 <section class="tab-content" id="ch9">
 <h2>第9章: ISR設計と副作用の分離</h2>
 
-<p>ISR は短く、決定論的で、責務が小さいほど扱いやすくなります。ここでは悪い ISR の具体例から始めて、イベント発行だけに絞った ISR へリファクタリングし、そのテスト戦略まで整理します。</p>
+<p>第8章で作った状態機械を、実際の割り込み入口へどう接続するかを扱う章です。ISR は短く、決定論的で、責務が小さいほど扱いやすくなります。ここでは悪い ISR の具体例から始めて、イベント発行だけに絞った ISR へリファクタリングし、純粋関数のロジックと副作用の境界をどう守るかまで整理します。</p>
 
 <h3>9.1 Before: ISR の中で全部やってしまう</h3>
 <div class="comparison">
@@ -1556,7 +1728,7 @@ void temp_alarm_fsm_on_ack_interrupt(temp_alarm_fsm_t *fsm) {
     EXPECT_EQ(hal_gpio_write_fake.arg1_val, 1);
 }</code></pre>
 
-<p><strong>詳細版:</strong> <a href="md/11_isr_example.md">ISRの具体例</a></p>
+<p><strong>詳細版:</strong> <a href="md/09_isr.md">ISRの具体例</a></p>
 </section>
 
 <!-- ===== 第10章 ===== -->
@@ -1595,7 +1767,7 @@ void temp_alarm_fsm_on_ack_interrupt(temp_alarm_fsm_t *fsm) {
 <li>変更後はネット遮断状態でも期待通り動くことを確認する</li>
 </ul>
 
-<p><strong>詳細版:</strong> <a href="md/09_html_security_checklist.md">HTMLセキュリティチェックリスト</a></p>
+<p><strong>詳細版:</strong> <a href="md/10_html_security_checklist.md">HTMLセキュリティチェックリスト</a></p>
 </section>
 
 </div>

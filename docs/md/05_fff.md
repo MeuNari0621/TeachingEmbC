@@ -1,6 +1,6 @@
-# 第4章: FFF によるフェイク関数
+# 第5章: FFF で副作用を検証する
 
-## 4.1 なぜフェイクが必要か
+## 5.1 なぜフェイクが必要か
 
 組み込みCでは、多くの関数がハードウェアにアクセスする「副作用」を持ちます。これらの関数はホスト環境では実行できません。
 
@@ -22,7 +22,7 @@ graph LR
     style Solution fill:#e8f5e9
 ```
 
-## 4.2 FFF（Fake Function Framework）とは
+## 5.2 FFF（Fake Function Framework）とは
 
 FFF は C/C++ 用のフェイク関数生成フレームワークです。**ヘッダファイル1つ（`fff.h`）** を配置するだけで使えます。
 
@@ -56,7 +56,7 @@ graph TD
     style STRUCT fill:#fff3e0
 ```
 
-## 4.3 実例: HAL 関数のフェイク化
+## 5.3 実例: HAL 関数のフェイク化
 
 本プロジェクトの `test_drv.cpp`（test_temp_monitor）の例:
 
@@ -95,7 +95,7 @@ protected:
 
 > **重要**: `RESET_FAKE` で各フェイクの呼び出しカウントや引数履歴をリセットします。`FFF_RESET_HISTORY` で呼び出し順序の履歴もリセット。これにより FIRST 原則の **Independent**（テスト間で状態を共有しない）を実現します。
 
-## 4.4 テストパターン
+## 5.4 テストパターン
 
 ### パターン1: 戻り値の制御
 
@@ -152,7 +152,7 @@ TEST_F(TempMonitorTest, SensorDisconnected_ReturnsError) {
 }
 ```
 
-## 4.5 テストダブルの分類
+## 5.5 テストダブルの分類
 
 ```mermaid
 graph TD
@@ -177,7 +177,7 @@ graph TD
 | スパイ | `call_count`, `arg0_val` で呼び出しを記録 | `EXPECT_EQ(hal_gpio_write_fake.call_count, 1);` |
 | フェイク | `custom_fake` でカスタム実装 | `hal_adc_read_fake.custom_fake = my_impl;` |
 
-## 4.6 FFF vs 他のアプローチ
+## 5.6 FFF vs 他のアプローチ
 
 | アプローチ | 長所 | 短所 |
 |-----------|------|------|

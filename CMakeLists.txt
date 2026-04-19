@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.29)
 
 project(MyMixedProject LANGUAGES C CXX)
 
-enable_testing()
+include(CTest)
 
 # C言語ソースのサブディレクトリを追加
 add_subdirectory(src)

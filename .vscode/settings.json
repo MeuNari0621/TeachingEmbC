@@ -1,0 +1,78 @@
+{
+    "cmake.useCMakePresets": "always",
+    "cmake.configureOnOpen": true,
+    "cmake.defaultConfigurePreset": "default",
+    "cmake.defaultBuildPreset": "default",
+    "cmake.defaultTestPreset": "default",
+    "testMate.cpp.discovery.loadOnStartup": true,
+    "testMate.cpp.debug.configTemplate": {
+        "type": "${assert:This workspace requires a supported C++ debugger.}",
+        "linux": {
+            "type": "cppdbg",
+            "MIMode": "gdb"
+        },
+        "darwin": {
+            "type": "cppdbg",
+            "MIMode": "lldb"
+        },
+        "win32": {
+            "type": "cppdbg",
+            "MIMode": "gdb",
+            "miDebuggerPath": "C:/bin/mingw64/bin/gdb.exe"
+        },
+        "program": "${exec}",
+        "args": "${argsArray}",
+        "cwd": "${cwd}",
+        "environment": "${envObjArray}",
+        "sourceFileMap": "${sourceFileMapObj}",
+        "externalConsole": false,
+        "stopAtEntry": false,
+        "setupCommands": [
+            {
+                "description": "Enable GDB pretty printing",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            }
+        ]
+    },
+    "testMate.cpp.test.advancedExecutables": [
+        {
+            "pattern": "build/Test/test_*",
+            "cwd": "${workspaceFolder}",
+            "waitForBuildProcess": true,
+            "win32": {
+                "pattern": "build/Test/*.exe"
+            }
+        }
+    ],
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                "scope": "googletest.failed",
+                "settings": {
+                    "foreground": "#f00"
+                }
+            },
+            {
+                "scope": "googletest.passed",
+                "settings": {
+                    "foreground": "#0f0"
+                }
+            },
+            {
+                "scope": "googletest.run",
+                "settings": {
+                    "foreground": "#0f0"
+                }
+            }
+        ]
+    },
+    "gtest-adapter.debugConfig": [
+        "GTest: test_temperature",
+        "GTest: test_temp_monitor",
+        "GTest: test_event_fsm",
+        "GTest: test_state_transition"
+    ],
+    "gtest-adapter.mainConfig": "GTest: test_temperature",
+    "gtest-adapter.supportLocation": true
+}

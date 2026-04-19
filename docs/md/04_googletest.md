@@ -1,6 +1,6 @@
-# 第3章: Google Test の基本
+# 第4章: Google Test で純粋関数を検証する
 
-## 3.1 Google Test とは
+## 4.1 Google Test とは
 
 Google Test は C++ 用のテストフレームワークです。組み込みC のコードを `extern "C"` で囲むことで、C 関数を C++ テストから呼び出せます。
 
@@ -18,7 +18,7 @@ extern "C" {
 }
 ```
 
-## 3.2 テストの基本構造
+## 4.2 テストの基本構造
 
 ### TEST マクロ（最もシンプル）
 
@@ -76,7 +76,7 @@ sequenceDiagram
     Note over GTest: 次のテストケースへ
 ```
 
-## 3.3 主要なアサーションマクロ
+## 4.3 主要なアサーションマクロ
 
 | マクロ | 意味 | 失敗時の動作 |
 |--------|------|-------------|
@@ -92,7 +92,7 @@ sequenceDiagram
 
 > **EXPECT vs ASSERT**: `EXPECT_*` は失敗してもテストを続行し、全ての失敗を報告します。`ASSERT_*` は失敗した時点でテストを中断します。
 
-## 3.4 実例: 純粋関数のテスト
+## 4.4 実例: 純粋関数のテスト
 
 本プロジェクトの `test_app.cpp`（test_temperature）は純粋関数のみをテストしています。
 
@@ -157,7 +157,7 @@ TEST_F(TemperatureIsValidTest, MaxIsInvalid) {
 }
 ```
 
-## 3.5 FIRST 原則
+## 4.5 FIRST 原則
 
 良いユニットテストの特性:
 
@@ -179,7 +179,7 @@ graph TD
 
 | 原則 | 説明 | 本教材での実践 |
 |------|------|-------------|
-| Fast | ミリ秒単位で完了 | 16テストが0.04秒で完了 |
+| Fast | ミリ秒単位で完了 | 30テストが約2秒で完了 |
 | Independent | テスト間で状態を共有しない | SetUp() で毎回リセット |
 | Repeatable | 環境に依存しない | HAL をフェイク化して環境非依存 |
 | Self-validating | PASS/FAIL が自動判定 | EXPECT_EQ 等で自動チェック |
