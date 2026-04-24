@@ -71,7 +71,8 @@
         "GTest: test_temperature",
         "GTest: test_temp_monitor",
         "GTest: test_event_fsm",
-        "GTest: test_state_transition"
+        "GTest: test_state_transition",
+        "GTest: test_autosar_hal"
     ],
     "gtest-adapter.mainConfig": "GTest: test_temperature",
     "gtest-adapter.supportLocation": true

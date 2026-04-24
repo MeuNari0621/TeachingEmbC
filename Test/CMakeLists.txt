@@ -43,3 +43,12 @@ gtest_discover_tests(test_event_fsm)
 add_executable(test_state_transition test_state_transition.cpp)
 target_link_libraries(test_state_transition gtest_main AppLibrary)
 gtest_discover_tests(test_state_transition)
+
+# === test_autosar_hal（AUTOSAR風MCALとHALアダプタのテスト） ===
+add_executable(test_autosar_hal test_autosar_hal.cpp)
+target_link_libraries(test_autosar_hal gtest_main HalLibrary AutosarMcal)
+target_include_directories(test_autosar_hal PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/hal
+    ${CMAKE_SOURCE_DIR}/src/autosar
+)
+gtest_discover_tests(test_autosar_hal)

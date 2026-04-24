@@ -96,7 +96,7 @@ th { background: var(--primary-light); font-weight: 600; }
 
 <header>
 <h1>組み込みC テスト駆動開発 教材</h1>
-<p>純粋関数・ポートアダプタ・Google Test・FFF・状態遷移・ISR を、一般論から具体例へ段階的に学ぶ</p>
+<p>純粋関数・ポートアダプタ・Google Test・FFF・状態遷移・ISR・AUTOSAR を、一般論から具体例へ段階的に学ぶ</p>
 </header>
 
 <div class="tab-container">
@@ -115,6 +115,7 @@ th { background: var(--primary-light); font-weight: 600; }
 <button type="button" class="tab-btn" data-tab="ch9">第9章<br>ISR</button>
 <div class="tab-group-label">補助資料</div>
 <button type="button" class="tab-btn" data-tab="ch10">第10章<br>HTML安全</button>
+<button type="button" class="tab-btn" data-tab="ch12">第12章<br>AUTOSAR</button>
 <button type="button" class="tab-btn" data-action="glossary" id="glossaryBtn">用語集<br>ポップアップ</button>
 </nav>
 <div class="tab-panels">
@@ -522,7 +523,7 @@ ctest --output-on-failure
 <ol>
 <li>推奨拡張機能の GoogleTest Adapter を有効にする</li>
 <li><code>default</code> preset で一度ビルドし、<code>build/Test/</code> にテスト実行ファイルを生成する</li>
-<li>Test Explorer で <code>test_temperature</code>、<code>test_temp_monitor</code>、<code>test_event_fsm</code>、<code>test_state_transition</code> を実行する</li>
+<li>Test Explorer で <code>test_temperature</code>、<code>test_temp_monitor</code>、<code>test_event_fsm</code>、<code>test_state_transition</code>、<code>test_autosar_hal</code> を実行する</li>
 </ol>
 
 <div class="note">
@@ -532,7 +533,7 @@ ctest --output-on-failure
 <h4>6.8.1 Test Explorer での確認手順</h4>
 <ol>
 <li>ビルド後に Test Explorer を開き、必要ならテスト一覧を再読込する</li>
-<li><code>test_temperature</code>、<code>test_temp_monitor</code>、<code>test_event_fsm</code>、<code>test_state_transition</code> の4バイナリが見えることを確認する</li>
+<li><code>test_temperature</code>、<code>test_temp_monitor</code>、<code>test_event_fsm</code>、<code>test_state_transition</code>、<code>test_autosar_hal</code> の5バイナリが見えることを確認する</li>
 <li>まず <code>test_temperature</code> または <code>test_state_transition</code> を単体実行して動作確認する</li>
 <li>最後に全体実行し、合計 30 テストが通ることを確認する</li>
 </ol>
@@ -707,7 +708,7 @@ graph TD
 
 <table>
 <tr><th>原則</th><th>説明</th><th>本教材での実践</th></tr>
-<tr><td>Fast</td><td>ミリ秒単位で完了</td><td>30テストが約2秒で完了</td></tr>
+<tr><td>Fast</td><td>ミリ秒単位で完了</td><td>34テストが約2秒で完了</td></tr>
 <tr><td>Independent</td><td>テスト間で状態を共有しない</td><td>SetUp() で毎回リセット</td></tr>
 <tr><td>Repeatable</td><td>環境に依存しない</td><td>HAL をフェイク化して環境非依存</td></tr>
 <tr><td>Self-validating</td><td>PASS/FAIL が自動判定</td><td>EXPECT_EQ 等で自動チェック</td></tr>
@@ -1070,7 +1071,7 @@ graph TD
     S1["1️⃣ 純粋関数を抽出\n変換ロジックを独立関数に"] --> S2["2️⃣ HALを定義\nハードウェアアクセスをラップ"]
     S2 --> S3["3️⃣ グローバル変数を排除\n引数と戻り値に置き換え"]
     S3 --> S4["4️⃣ テストを書く\n純粋関数 → FFF統合"]
-    S4 --> S5["5️⃣ 全テストを実行\n30テスト全パス"]
+    S4 --> S5["5️⃣ 全テストを実行\n34テスト全パス"]
     style S1 fill:#e8f5e9
     style S2 fill:#e8f5e9
     style S3 fill:#e8f5e9
@@ -1768,6 +1769,61 @@ void temp_alarm_fsm_on_ack_interrupt(temp_alarm_fsm_t *fsm) {
 </ul>
 
 <p><strong>詳細版:</strong> <a href="md/10_html_security_checklist.md">HTMLセキュリティチェックリスト</a></p>
+</section>
+
+<!-- ===== 第12章 ===== -->
+<section class="tab-content" id="ch12">
+<h2>第12章: AUTOSAR準拠の下回りへ寄せる</h2>
+
+<h3>12.1 この教材で参照した AUTOSAR REV</h3>
+<p>本教材の下回り改造では <strong>AUTOSAR Classic Platform R24-11</strong> を基準にしました。参照元は AUTOSAR 公式サイトと公式配布資料です。</p>
+<ul>
+<li><a href="https://www.autosar.org/standards/classic-platform">Classic Platform 公式ページ</a></li>
+<li><a href="https://www.autosar.org/fileadmin/standards/R24-11/FO/AUTOSAR_FO_TR_ReleaseOverview.pdf">Foundation Release Overview R24-11</a></li>
+<li><a href="https://www.autosar.org/fileadmin/user_upload/AUTOSAR_EXP_Introduction_Part1.pdf">AUTOSAR Introduction Part 1</a></li>
+<li><a href="https://www.autosar.org/fileadmin/user_upload/AUTOSAR_EXP_Introduction_Part2.pdf">AUTOSAR Introduction Part 2</a></li>
+<li><a href="https://www.autosar.org/fileadmin/standards/R25-11/FO/AUTOSAR_FO_EXP_SafetyOverview.pdf">Safety Overview</a></li>
+</ul>
+<blockquote>本リポジトリは教材のため、RTE や ECUC を含むフル AUTOSAR 実装ではありません。今回は <strong>ADC / DIO / Port の責務分離と命名を AUTOSAR Classic Platform に合わせる簡略準拠</strong> としています。</blockquote>
+
+<h3>12.2 AUTOSAR 入門</h3>
+<p>AUTOSAR は車載ソフトウェアの再利用性、移植性、品質確保を狙う標準です。Classic Platform では、下回りを段階的に分けて責務を固定します。</p>
+<table>
+<tr><th>層</th><th>役割</th><th>本教材での対応</th></tr>
+<tr><td>Application</td><td>業務ロジック</td><td><code>temperature.c</code>, <code>temp_monitor.c</code>, <code>temp_alarm_fsm.c</code></td></tr>
+<tr><td>RTE</td><td>SWC 間の接続</td><td>本教材では未導入</td></tr>
+<tr><td>Basic Software</td><td>共通サービス群</td><td>本教材では最小限</td></tr>
+<tr><td>MCAL</td><td>MCU 依存ドライバ</td><td><code>src/autosar/Adc.*</code>, <code>Dio.*</code>, <code>Port.*</code></td></tr>
+</table>
+
+<h3>12.3 どこを AUTOSAR 風にしたか</h3>
+<table>
+<tr><th>変更前</th><th>変更後</th><th>意図</th></tr>
+<tr><td><code>hal_adc_read()</code> が単独スタブ</td><td><code>hal_adc_read()</code> → <code>Adc_StartGroupConversion()</code> / <code>Adc_ReadGroup()</code></td><td>ADC責務を MCAL に寄せる</td></tr>
+<tr><td><code>hal_gpio_write()</code> が単独スタブ</td><td><code>hal_gpio_write()</code> → <code>Port_Init()</code> / <code>Dio_WriteChannel()</code></td><td>I/O責務を Port/Dio に分ける</td></tr>
+<tr><td>共通標準型なし</td><td><code>Std_Types.h</code> を追加</td><td>AUTOSAR系の型・戻り値を合わせる</td></tr>
+</table>
+
+<h3>12.4 品質保証で意識すること</h3>
+<ul>
+<li><strong>責務分離</strong>: ADC, DIO, Port を分けて、変更影響を局所化する</li>
+<li><strong>インターフェース固定</strong>: 上位は標準化された境界に依存する</li>
+<li><strong>安全規格との整合</strong>: 実案件では ISO 26262 と合わせて要求、故障検出、診断を整理する</li>
+<li><strong>静的品質</strong>: MISRA C、静的解析、コードレビュー、構成管理を前提にする</li>
+<li><strong>診断設計</strong>: 実案件では DET/DEM で異常通知経路を定義する</li>
+</ul>
+
+<h3>12.5 テスト戦略</h3>
+<table>
+<tr><th>レベル</th><th>対象</th><th>方法</th></tr>
+<tr><td>純粋関数テスト</td><td><code>temperature.c</code>, <code>temp_alarm_transition()</code></td><td>Google Test</td></tr>
+<tr><td>境界テスト</td><td><code>temp_monitor.c</code></td><td>FFF で <code>hal_*</code> をフェイク化</td></tr>
+<tr><td>MCALテスト</td><td><code>Adc.*</code>, <code>Dio.*</code>, <code>Port.*</code>, <code>hal_*</code> アダプタ</td><td><code>test_autosar_hal.cpp</code></td></tr>
+<tr><td>実機結合</td><td>実MCU依存ドライバ</td><td>ターゲット確認</td></tr>
+</table>
+
+<p>今回の追加テストでは、DIO の read/write、ADC グループ読み出し、既存 HAL が AUTOSAR 風 MCAL を正しく使うこと、既存アプリ層のテストを壊さないことをホスト側で確認します。</p>
+<p><strong>詳細版:</strong> <a href="md/12_autosar.md">AUTOSAR準拠の下回り設計</a></p>
 </section>
 
 </div>

@@ -198,4 +198,4 @@ graph TD
 
 > **目標**: レベル1 と レベル2 でバグの大半を検出し、ターゲットテストは接続確認と最終保証に集中する。
 
-現在のホスト側テストは `test_temperature`, `test_temp_monitor`, `test_event_fsm`, `test_state_transition` の4バイナリで構成され、最新確認では 30 テストがすべてパスしています。
+現在のホスト側テストは `test_temperature`, `test_temp_monitor`, `test_event_fsm`, `test_state_transition`, `test_autosar_hal` の5バイナリで構成され、最新確認では 34 テストがすべてパスしています。

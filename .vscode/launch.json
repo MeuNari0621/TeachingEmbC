@@ -76,6 +76,25 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "GTest: test_autosar_hal",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Test/test_autosar_hal.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "C:/bin/mingw64/bin/gdb.exe",
+            "externalConsole": false,
+            "stopAtEntry": false,
+            "setupCommands": [
+                {
+                    "description": "Enable GDB pretty printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         }
     ]
 }

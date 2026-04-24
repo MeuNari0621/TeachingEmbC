@@ -284,7 +284,7 @@ graph TD
     STEP1["1️⃣ 純粋関数を抽出\n変換ロジックを独立関数に"] --> STEP2["2️⃣ HALを定義\nハードウェアアクセスをラップ"]
     STEP2 --> STEP3["3️⃣ グローバル変数を排除\n引数と戻り値に置き換え"]
     STEP3 --> STEP4["4️⃣ テストを書く\n純粋関数 → FFF統合"]
-    STEP4 --> STEP5["5️⃣ 全テストを実行\n30テスト全パス"]
+    STEP4 --> STEP5["5️⃣ 全テストを実行\n34テスト全パス"]
     
     style STEP1 fill:#e8f5e9
     style STEP2 fill:#e8f5e9

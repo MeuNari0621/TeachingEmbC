@@ -1,25 +1,47 @@
 /**
  * @file hal_adc.c
- * @brief ADC HAL の実機実装
+ * @brief ADC HAL の実装
  *
- * ターゲット環境ではレジスタアクセスを行う。
- * ホストテスト時はこのファイルの代わりに FFF フェイクを使う。
+ * アプリ層には従来どおり HAL を提供しつつ、
+ * 下回りは AUTOSAR Classic Platform 風の ADC MCAL へ接続する。
  */
 #include "hal_adc.h"
 
-/* 実機ではここでレジスタアクセスを行う */
-/* 例: #include "stm32f4xx_hal.h" */
+#include "Adc.h"
+
+enum {
+    HAL_ADC_AUTOSAR_GROUP = 0
+};
+
+static void hal_adc_ensure_initialized(void) {
+    static uint8_t initialized = 0u;
+    static const Adc_ConfigType adc_config = {
+        HAL_ADC_AUTOSAR_GROUP,
+        0u
+    };
+
+    if (initialized != 0u) {
+        return;
+    }
+
+    Adc_Init(&adc_config);
+    initialized = 1u;
+}
 
 void hal_adc_init(void) {
-    /* 実機: ADC ペリフェラル初期化 */
-    /* HAL_ADC_Init(&hadc1); */
+    hal_adc_ensure_initialized();
 }
 
 uint16_t hal_adc_read(uint8_t channel) {
+    Adc_ValueGroupType raw_value = 0u;
+
     (void)channel;
-    /* 実機: レジスタから ADC 値を読み取り */
-    /* HAL_ADC_Start(&hadc1); */
-    /* HAL_ADC_PollForConversion(&hadc1, 100); */
-    /* return HAL_ADC_GetValue(&hadc1); */
-    return 0; /* ホストビルド用スタブ */
+    hal_adc_ensure_initialized();
+
+    Adc_StartGroupConversion(HAL_ADC_AUTOSAR_GROUP);
+    if (Adc_ReadGroup(HAL_ADC_AUTOSAR_GROUP, &raw_value) != E_OK) {
+        return 0u;
+    }
+
+    return raw_value;
 }

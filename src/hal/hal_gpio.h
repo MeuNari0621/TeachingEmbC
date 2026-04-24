@@ -1,6 +1,8 @@
 /**
  * @file hal_gpio.h
  * @brief GPIO ハードウェア抽象化レイヤ（HAL）
+ *
+ * 下回りは AUTOSAR Classic Platform 風の Port / Dio ドライバへ委譲する。
  */
 #ifndef HAL_GPIO_H
 #define HAL_GPIO_H
