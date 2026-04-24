@@ -42,6 +42,7 @@ TEST_F(AutosarHalTest, AdcReadGroupReturnsConfiguredSample) {
 }
 
 TEST_F(AutosarHalTest, HalAdcReadUsesAutosarAdcDriver) {
+    hal_adc_init();
     Adc_SetSimulatedGroupSample(kTemperatureGroup, 3210u);
 
     EXPECT_EQ(3210u, hal_adc_read(0u));
