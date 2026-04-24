@@ -22,4 +22,8 @@ typedef uint8_t boolean;
 #define E_NOT_OK 1u
 #endif
 
+#ifndef NULL_PTR
+#define NULL_PTR ((void *)0)
+#endif
+
 #endif /* STD_TYPES_H */

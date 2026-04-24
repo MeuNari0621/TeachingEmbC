@@ -1,7 +1,7 @@
 #include "Port.h"
 
 void Port_Init(const Port_ConfigType *ConfigPtr) {
-    if (ConfigPtr == 0) {
+    if (ConfigPtr == NULL_PTR) {
         return;
     }
 

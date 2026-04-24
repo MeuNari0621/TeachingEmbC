@@ -9,7 +9,7 @@ void Adc_Init(const Adc_ConfigType *ConfigPtr) {
     adc_group_sample = 0u;
     adc_group_status = ADC_IDLE;
 
-    if (ConfigPtr == 0) {
+    if (ConfigPtr == NULL_PTR) {
         return;
     }
 
@@ -26,7 +26,7 @@ void Adc_StartGroupConversion(Adc_GroupType Group) {
 }
 
 Std_ReturnType Adc_ReadGroup(Adc_GroupType Group, Adc_ValueGroupType *DataBufferPtr) {
-    if (DataBufferPtr == 0 || Group != adc_configured_group) {
+    if (DataBufferPtr == NULL_PTR || Group != adc_configured_group) {
         return E_NOT_OK;
     }
 
