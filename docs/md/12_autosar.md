@@ -63,7 +63,7 @@ AUTOSAR 準拠化で大事なのは、下回りを増やしてもテストしや
 - `Dio_WriteChannel()` と `Dio_ReadChannel()` の整合
 - `Adc_StartGroupConversion()` と `Adc_ReadGroup()` の整合
 - 既存 HAL が AUTOSAR 風 MCAL を正しく呼ぶこと
-- 既存アプリ層の 30 テストが壊れないこと
+- 既存アプリ層と追加 MCAL テストを含む 34 テストが壊れないこと
 
 ## 12.6 まとめ
 

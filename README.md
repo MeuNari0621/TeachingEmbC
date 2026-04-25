@@ -42,14 +42,14 @@
 2. 一度 `default` preset でビルドし、`build/Test/` 配下にテスト実行ファイルを生成する
 3. Test Explorer で `test_temperature`, `test_temp_monitor`, `test_event_fsm`, `test_state_transition`, `test_autosar_hal` を読み込んで実行する
 
-- `.vscode/settings.json` の `gtest-adapter.debugConfig` で 4 本の launch 構成名を列挙しています
+- `.vscode/settings.json` の `gtest-adapter.debugConfig` で 5 本の launch 構成名を列挙しています
 - `.vscode/launch.json` の `GTest: ...` 構成が、それぞれ `build/Test/*.exe` の実行ファイルを指します
 - Windows では MinGW の `C:/bin/mingw64/bin/gdb.exe` を使ってデバッグします
 
 ### Test Explorer での確認手順
 
 1. ビルド後に Test Explorer を開き、必要ならテスト一覧の再読込を実行する
-2. 4つの実行ファイル単位でテストが見えることを確認する
+2. 5つの実行ファイル単位でテストが見えることを確認する
 3. まず `test_temperature` か `test_state_transition` の単体実行で動作確認する
 4. 最後に全体実行し、合計 34 テストが通ることを確認する
 

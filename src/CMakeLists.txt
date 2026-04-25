@@ -32,11 +32,13 @@ set(HAL_SOURCES
 )
 
 add_library(HalLibrary STATIC ${HAL_SOURCES})
-target_include_directories(HalLibrary PUBLIC
-    hal
-    autosar
+target_include_directories(HalLibrary
+    PUBLIC
+        hal
+    PRIVATE
+        autosar
 )
-target_link_libraries(HalLibrary PUBLIC AutosarMcal)
+target_link_libraries(HalLibrary PRIVATE AutosarMcal)
 
 # アプリケーション → HAL の依存
 target_link_libraries(AppLibrary PUBLIC HalLibrary)

@@ -501,7 +501,7 @@ ctest --output-on-failure
 <li>ワークスペースを開き、推奨拡張機能の CMake Tools と C/C++ を有効にする</li>
 <li>ステータスバーかコマンドパレットで Configure を実行し、preset は <code>default</code> を使う</li>
 <li>Build ボタンでビルドし、Testing ビューまたは CMake の Run Tests でテストを実行する</li>
-<li>Testing ビューで 30 テストの PASS/FAIL を確認する</li>
+<li>Testing ビューで 34 テストの PASS/FAIL を確認する</li>
 </ol>
 
 <p><strong>確認済み:</strong> このワークスペースでは、VS Code の CMake Tools で <code>default</code> preset を選択後、Build と Run Tests の両方が成功します。</p>
@@ -527,7 +527,7 @@ ctest --output-on-failure
 </ol>
 
 <div class="note">
-<strong>補足:</strong> <code>.vscode/settings.json</code> の <code>gtest-adapter.debugConfig</code> に 4 本の launch 構成名を列挙し、<code>.vscode/launch.json</code> の <code>GTest: ...</code> 構成が <code>build/Test/*.exe</code> を直接指すようにしています。Windows のデバッグは MinGW の <code>gdb.exe</code> を使います。
+<strong>補足:</strong> <code>.vscode/settings.json</code> の <code>gtest-adapter.debugConfig</code> に 5 本の launch 構成名を列挙し、<code>.vscode/launch.json</code> の <code>GTest: ...</code> 構成が <code>build/Test/*.exe</code> を直接指すようにしています。Windows のデバッグは MinGW の <code>gdb.exe</code> を使います。
 </div>
 
 <h4>6.8.1 Test Explorer での確認手順</h4>
@@ -535,7 +535,7 @@ ctest --output-on-failure
 <li>ビルド後に Test Explorer を開き、必要ならテスト一覧を再読込する</li>
 <li><code>test_temperature</code>、<code>test_temp_monitor</code>、<code>test_event_fsm</code>、<code>test_state_transition</code>、<code>test_autosar_hal</code> の5バイナリが見えることを確認する</li>
 <li>まず <code>test_temperature</code> または <code>test_state_transition</code> を単体実行して動作確認する</li>
-<li>最後に全体実行し、合計 30 テストが通ることを確認する</li>
+<li>最後に全体実行し、合計 34 テストが通ることを確認する</li>
 </ol>
 
 <ul>

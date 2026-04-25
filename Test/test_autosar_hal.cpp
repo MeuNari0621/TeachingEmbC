@@ -41,6 +41,17 @@ TEST_F(AutosarHalTest, AdcReadGroupReturnsConfiguredSample) {
     EXPECT_EQ(ADC_IDLE, Adc_GetGroupStatus(kTemperatureGroup));
 }
 
+TEST_F(AutosarHalTest, AdcReadGroupReturnsNotOkForNullBuffer) {
+    EXPECT_EQ(E_NOT_OK,
+              Adc_ReadGroup(kTemperatureGroup, static_cast<Adc_ValueGroupType *>(NULL_PTR)));
+}
+
+TEST_F(AutosarHalTest, AdcReadGroupReturnsNotOkForUnexpectedGroup) {
+    Adc_ValueGroupType sample = 0u;
+
+    EXPECT_EQ(E_NOT_OK, Adc_ReadGroup(static_cast<Adc_GroupType>(kTemperatureGroup + 1u), &sample));
+}
+
 TEST_F(AutosarHalTest, HalAdcReadUsesAutosarAdcDriver) {
     hal_adc_init();
     Adc_SetSimulatedGroupSample(kTemperatureGroup, 3210u);
@@ -53,4 +64,12 @@ TEST_F(AutosarHalTest, HalGpioWriteUsesAutosarDioDriver) {
 
     EXPECT_EQ(STD_HIGH, Dio_ReadChannel(kAlarmPin));
     EXPECT_EQ(1u, hal_gpio_read(kAlarmPin));
+}
+
+TEST_F(AutosarHalTest, PortInitWithNullPtrIsNoOp) {
+    Dio_WriteChannel(kAlarmPin, STD_HIGH);
+
+    Port_Init(static_cast<const Port_ConfigType *>(NULL_PTR));
+
+    EXPECT_EQ(STD_HIGH, Dio_ReadChannel(kAlarmPin));
 }
