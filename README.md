@@ -8,6 +8,7 @@
 - 第8章 状態遷移の設計とテスト: docs/md/08_state_transition.md
 - 第9章 ISR設計と副作用の分離: docs/md/09_isr.md
 - 第12章 AUTOSAR準拠の下回り設計: docs/md/12_autosar.md
+- 第13章 組み込みCでオブジェクト指向をどう扱うか: docs/md/13_object_oriented.md
 - 第10章 HTMLセキュリティチェックリスト: docs/md/10_html_security_checklist.md
 
 ## ドキュメント運用メモ
