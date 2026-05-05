@@ -116,6 +116,7 @@ th { background: var(--primary-light); font-weight: 600; }
 <div class="tab-group-label">補助資料</div>
 <button type="button" class="tab-btn" data-tab="ch10">第10章<br>HTML安全</button>
 <button type="button" class="tab-btn" data-tab="ch12">第12章<br>AUTOSAR</button>
+<button type="button" class="tab-btn" data-tab="ch13">第13章<br>OO設計</button>
 <button type="button" class="tab-btn" data-action="glossary" id="glossaryBtn">用語集<br>ポップアップ</button>
 </nav>
 <div class="tab-panels">
@@ -1824,6 +1825,135 @@ void temp_alarm_fsm_on_ack_interrupt(temp_alarm_fsm_t *fsm) {
 
 <p>今回の追加テストでは、DIO の read/write、ADC グループ読み出し、既存 HAL が AUTOSAR 風 MCAL を正しく使うこと、既存アプリ層のテストを壊さないことをホスト側で確認します。</p>
 <p><strong>詳細版:</strong> <a href="md/12_autosar.md">AUTOSAR準拠の下回り設計</a></p>
+</section>
+
+<!-- ===== 第13章 ===== -->
+<section class="tab-content" id="ch13">
+<h2>第13章: 組み込みCでオブジェクト指向をどう扱うか</h2>
+
+<p>組み込み C で「オブジェクト指向を採用する」と言っても、C++ のクラス継承をそのまま持ち込む話ではありません。C で現実的に取り入れるのは、<strong>責務のカプセル化</strong>、<strong>抽象インターフェース</strong>、<strong>差し替え可能性</strong> です。</p>
+
+<blockquote><strong>結論:</strong> ハードウェア差分・複数インスタンス・差し替えが必要な境界にはオブジェクト指向の考え方が有効です。一方で、純粋計算、単純な状態遷移、ISR の最短経路には、無理に入れない方がシンプルです。</blockquote>
+
+<h3>13.1 メリット / デメリット</h3>
+<table>
+<tr><th>観点</th><th>メリット</th><th>デメリット</th></tr>
+<tr><td>保守性</td><td>責務ごとに分離しやすい</td><td>構造体や関数ポインタで記述量が増える</td></tr>
+<tr><td>移植性</td><td>実装差し替えがしやすい</td><td>抽象化が過剰だと追跡しにくい</td></tr>
+<tr><td>テスト容易性</td><td>フェイク実装を差し込みやすい</td><td>初学者には理解コストが上がる</td></tr>
+<tr><td>性能/資源</td><td>境界整理で最適化ポイントを分けやすい</td><td>RAM/ROM と間接呼び出しコストが増えることがある</td></tr>
+</table>
+
+<h3>13.2 オブジェクト指向を入れるべきところ / 不要なところ</h3>
+<table>
+<tr><th>向いている</th><th>理由</th><th>不要なことが多い</th><th>理由</th></tr>
+<tr><td>ADC / GPIO / UART などの境界</td><td>実機差分とテストフェイクを隠せる</td><td>温度変換や閾値判定</td><td>純粋関数で十分</td></tr>
+<tr><td>複数インスタンスのデバイス</td><td>状態と依存先をまとめられる</td><td>単純な状態遷移の中核</td><td>データと関数の方が読みやすい</td></tr>
+<tr><td>通信IFやドライバ</td><td>共通 API で差し替えしやすい</td><td>ISR の最短経路</td><td>間接呼び出しを避けたい</td></tr>
+</table>
+
+<h3>13.3 UML 風アーキテクチャ</h3>
+<div class="mermaid">
+classDiagram
+    class TempMonitor {
+        -adc : AdcPort*
+        -led : GpioPort*
+        -threshold_x10 : int16_t
+        +run() int16_t
+    }
+    class AdcPort {
+        &lt;&lt;interface&gt;&gt;
+        +read(context) uint16_t
+    }
+    class GpioPort {
+        &lt;&lt;interface&gt;&gt;
+        +write(context, state) void
+    }
+    class Stm32Adc
+    class FakeAdc
+    class Stm32Led
+    class FakeLed
+    TempMonitor --&gt; AdcPort : uses
+    TempMonitor --&gt; GpioPort : uses
+    Stm32Adc ..|&gt; AdcPort
+    FakeAdc ..|&gt; AdcPort
+    Stm32Led ..|&gt; GpioPort
+    FakeLed ..|&gt; GpioPort
+</div>
+
+<div class="mermaid">
+flowchart LR
+    subgraph OO_DOMAIN["OO的にまとめる価値が高い"]
+        O1["デバイスドライバ"]
+        O2["通信IF"]
+        O3["複数インスタンス管理"]
+    end
+    subgraph PLAIN_DOMAIN["手続き的で十分"]
+        P1["温度変換"]
+        P2["閾値判定"]
+        P3["純粋な状態遷移"]
+        P4["ISR最短経路"]
+    end
+</div>
+
+<h3>13.4 C での具体例: オブジェクト指向が有効な例</h3>
+<pre><code>typedef struct {
+    uint16_t (*read)(void *context);
+    void *context;
+} adc_port_t;
+
+typedef struct {
+    void (*write)(void *context, uint8_t state);
+    void *context;
+} gpio_port_t;
+
+typedef struct {
+    adc_port_t *adc;
+    gpio_port_t *led;
+    int16_t threshold_x10;
+} temp_monitor_t;
+
+int16_t temp_monitor_run(temp_monitor_t *self) {
+    uint16_t raw = self->adc->read(self->adc->context);
+
+    if (!temperature_is_valid(raw)) {
+        self->led->write(self->led->context, 1);
+        return -9999;
+    }
+
+    int16_t temp_x10 = temperature_convert(raw);
+    self->led->write(self->led->context,
+                     (uint8_t)temperature_is_over(temp_x10, self->threshold_x10));
+    return temp_x10;
+}</code></pre>
+
+<p>この形は、実機実装とホストテスト用フェイクを差し替えたいとき、または同じ監視ロジックを複数センサに使い回したいときに有効です。</p>
+
+<h3>13.5 C での具体例: オブジェクト指向が不要な例</h3>
+<p><code>src/app/temperature.c</code> のような純粋関数は、あえてオブジェクト化しない方が分かりやすい例です。</p>
+<pre><code>int16_t temperature_convert(uint16_t raw_adc) {
+    int32_t mv = (int32_t)raw_adc * 3300 / 4095;
+    return (int16_t)(mv / 10);
+}
+
+int temperature_is_over(int16_t temp_x10, int16_t threshold_x10) {
+    return (temp_x10 &gt; threshold_x10) ? 1 : 0;
+}</code></pre>
+
+<p>同様に、<code>src/app/temp_alarm_fsm.c</code> の <code>temp_alarm_transition()</code> は、入力から次状態を返す純粋関数として読めることが重要です。ここに無理に仮想メソッド風の構造を入れると、遷移の見通しとテスト容易性が落ちやすくなります。</p>
+
+<h3>13.6 本教材との対応</h3>
+<table>
+<tr><th>観点</th><th>本リポジトリでの位置づけ</th></tr>
+<tr><td>OO 的な考え方が効く境界</td><td><code>src/hal/hal_adc.h</code>, <code>src/hal/hal_gpio.h</code>, <code>src/autosar/*</code></td></tr>
+<tr><td>手続き的なままがよいロジック</td><td><code>src/app/temperature.c</code></td></tr>
+<tr><td>データ中心で扱う方が明快な設計</td><td><code>src/app/temp_alarm_fsm.c</code></td></tr>
+<tr><td>悪い例との比較対象</td><td><code>src/before/bad_temp.c</code></td></tr>
+</table>
+
+<p><strong>要点:</strong> 本教材は「全面的にオブジェクト指向化する」のではなく、「境界だけを抽象化し、中核ロジックはシンプルな C のまま保つ」という立場です。</p>
+
+<p><strong>詳細版:</strong> <a href="md/13_object_oriented.md">組み込みCでオブジェクト指向をどう扱うか</a></p>
 </section>
 
 </div>
