@@ -115,7 +115,7 @@ flowchart LR
 
 ## 13.6 C での具体例: オブジェクト指向が有効な例
 
-以下は、C で「インターフェース + 実体」を表す典型例です。`TempMonitor` が `ADC` と `LED` を直接知るのではなく、抽象ポートを通して使います。
+以下は、C で「インターフェース + 実体」を表す典型例です。`TempMonitor` が `ADC` と `LED` を直接知るのではなく、抽象ポートを通して使います。実際の教材コードは `src/object_oriented/oo_temp_monitor.h` / `src/object_oriented/oo_temp_monitor.c` に配置しています。
 
 ```c
 typedef struct {
@@ -184,12 +184,15 @@ int temperature_is_over(int16_t temp_x10, int16_t threshold_x10) {
 
 | 観点 | 本リポジトリでの位置づけ |
 |------|-------------------------|
-| OO 的な考え方が効く境界 | `src/hal/hal_adc.h`, `src/hal/hal_gpio.h`, `src/autosar/*` |
+| OO 的な考え方が効く境界 | `src/object_oriented/oo_temp_monitor.*`, `src/hal/hal_adc.h`, `src/hal/hal_gpio.h`, `src/autosar/*` |
+| OO サンプルのホストテスト | `Test/test_object_oriented.cpp` |
 | 手続き的なままがよいロジック | `src/app/temperature.c` |
 | データ中心で扱う方が明快な設計 | `src/app/temp_alarm_fsm.c` |
 | 悪い例との比較対象 | `src/before/bad_temp.c` |
 
 つまり本教材は、**「全面的にオブジェクト指向化する」のではなく、「境界だけを抽象化し、中核ロジックはシンプルな C のまま保つ」** という現実的な折衷案を採っています。
+
+`Test/test_object_oriented.cpp` では、GoogleTest 上で通常温度、高温、センサ異常、複数インスタンス、未設定ポートを具体的に検証できます。これにより、第2章のテスト容易性と第6章の CMake / GCC / GoogleTest 環境が、第13章の OO 例にもそのまま適用できることを確認できます。
 
 ## 13.9 採用判断のチェックリスト
 

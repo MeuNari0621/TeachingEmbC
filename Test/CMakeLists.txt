@@ -52,3 +52,8 @@ target_include_directories(test_autosar_hal PRIVATE
     ${CMAKE_SOURCE_DIR}/src/autosar
 )
 gtest_discover_tests(test_autosar_hal)
+
+# === test_object_oriented（Cでのオブジェクト指向風設計のテスト） ===
+add_executable(test_object_oriented test_object_oriented.cpp)
+target_link_libraries(test_object_oriented gtest_main ObjectOrientedLibrary)
+gtest_discover_tests(test_object_oriented)

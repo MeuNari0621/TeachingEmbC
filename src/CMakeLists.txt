@@ -25,6 +25,18 @@ target_include_directories(AppLibrary PUBLIC
     hal
 )
 
+# === オブジェクト指向風サンプル（インターフェース + 実体）===
+set(OBJECT_ORIENTED_SOURCES
+    object_oriented/oo_temp_monitor.c
+)
+
+add_library(ObjectOrientedLibrary STATIC ${OBJECT_ORIENTED_SOURCES})
+target_include_directories(ObjectOrientedLibrary PUBLIC
+    object_oriented
+    app
+)
+target_link_libraries(ObjectOrientedLibrary PUBLIC AppLibrary)
+
 # === HAL 層（ハードウェア抽象化）===
 set(HAL_SOURCES
     hal/hal_adc.c
