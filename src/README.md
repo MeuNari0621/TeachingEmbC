@@ -11,6 +11,7 @@
 | `hal/` | ハードウェア抽象化レイヤ | `docs/md/03_port_adapter.md` |
 | `autosar/` | AUTOSAR 風の下回り実装例 | `docs/md/12_autosar.md` |
 | `object_oriented/` | Cでのオブジェクト指向風サンプル | `docs/md/13_object_oriented.md` |
+| `dbc/` | 契約による設計 + TDD + 実装のサンプル | `docs/md/14_design_by_contract.md`, `docs/md/15_tdd.md`, `docs/md/16_implementation.md` |
 
 ## 実際のサンプル配置
 
@@ -23,6 +24,12 @@
   - `object_oriented/oo_temp_monitor.h`
   - `object_oriented/oo_temp_monitor.c`
   - `Test/test_object_oriented.cpp`
+- 契約による設計 + TDD + 実装の具体例:
+  - `dbc/dbc_assert.h` … 契約マクロ定義
+  - `dbc/dbc_assert.c` … 違反ハンドラ（差し替え可能）
+  - `dbc/battery_monitor.h` … 契約付きヘッダ
+  - `dbc/battery_monitor.c` … 契約付き実装
+  - `Test/test_dbc_tdd.cpp` … TDD サイクルに沿ったテスト
 
 ## オブジェクト指向風サンプルの狙い
 
@@ -35,9 +42,20 @@
 
 このサンプルでは `oo_temp_monitor_t` が ADC ポート、GPIO ポート、閾値、直近の状態をまとめて保持し、`oo_temp_monitor_run()` が 1 サイクル分の処理を実行します。
 
+## 契約による設計（DbC）サンプルの狙い
+
+`dbc/battery_monitor.*` は、以下を契約マクロと TDD で表現します。
+
+- 事前条件（DBC_REQUIRE）: 呼び出し側が満たすべき条件
+- 事後条件（DBC_ENSURE）: 関数が保証すべき結果の条件
+- 不変条件（DBC_INVARIANT）: 常に成り立つべき条件
+- 防御的プログラミング: 契約違反時の安全な振る舞い
+
+`dbc_assert.h` の契約マクロは `NDEBUG` 定義時にゼロコストで除去されます。テスト (`test_dbc_tdd.cpp`) は TDD の Red-Green-Refactor サイクルに沿い、正常系・境界値・異常系・契約違反検出を網羅します。
+
 ## GoogleTest / CMake / GCC での確認
 
-このリポジトリでは CMake と GCC で GoogleTest 環境を構成しています。`Test/test_object_oriented.cpp` を含む全テストは次のコマンドで確認できます。
+このリポジトリでは CMake と GCC で GoogleTest 環境を構成しています。`Test/test_dbc_tdd.cpp` を含む全テストは次のコマンドで確認できます。
 
 ```bash
 cmake --preset default
@@ -46,3 +64,5 @@ ctest --test-dir build --output-on-failure
 ```
 
 `test_object_oriented` は、通常温度・高温・センサ異常・複数インスタンス・未設定ポートを具体的に検証します。
+
+`test_dbc_tdd` は、ADC電圧変換・状態判定・境界値・契約違反検出・NULLポインタ防御を検証します。
