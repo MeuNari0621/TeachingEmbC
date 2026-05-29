@@ -10,6 +10,7 @@
 - 第12章 AUTOSAR準拠の下回り設計: docs/md/12_autosar.md
 - 第13章 組み込みCでオブジェクト指向をどう扱うか: docs/md/13_object_oriented.md
 - 第10章 HTMLセキュリティチェックリスト: docs/md/10_html_security_checklist.md
+- src のサンプル対応表: src/README.md
 
 ## ドキュメント運用メモ
 
@@ -22,8 +23,8 @@
 
 - CMake ビルド: `cmake --build build`
 - CTest 実行: `ctest --test-dir build --output-on-failure`
-- 現在のホストテスト構成: `test_temperature`, `test_temp_monitor`, `test_event_fsm`, `test_state_transition`, `test_autosar_hal`
-- 最新確認結果: 34 tests passed, 0 tests failed out of 34
+- 現在のホストテスト構成: `test_temperature`, `test_temp_monitor`, `test_event_fsm`, `test_state_transition`, `test_autosar_hal`, `test_object_oriented`
+- 最新確認結果: 43 tests passed, 0 tests failed out of 43
 - VS Code CMake Tools GUI: `default` preset を選択後、Build と Run Tests の両方を確認済み
 
 ## VS Code GUI でのビルドとテスト
@@ -31,7 +32,7 @@
 1. ワークスペースを開き、推奨拡張機能の `ms-vscode.cmake-tools` と `ms-vscode.cpptools` を有効にする
 2. CMake Tools が `CMakePresets.json` の `default` preset を読み込んだら、ステータスバーの Configure を実行する
 3. ステータスバーの Build からビルドし、Testing ビューまたは CMake の Run Tests でテストを実行する
-4. Testing ビューで 34 テストの PASS/FAIL を確認する
+4. Testing ビューで 43 テストの PASS/FAIL を確認する
 
 - `CMakePresets.json` は GUI 用の configure/build/test preset を定義します
 - `.vscode/settings.json` は presets 利用と configure-on-open を固定します
@@ -41,7 +42,7 @@
 
 1. 推奨拡張機能の `davidschuldenfrei.gtest-adapter` を有効にする
 2. 一度 `default` preset でビルドし、`build/Test/` 配下にテスト実行ファイルを生成する
-3. Test Explorer で `test_temperature`, `test_temp_monitor`, `test_event_fsm`, `test_state_transition`, `test_autosar_hal` を読み込んで実行する
+3. Test Explorer で `test_temperature`, `test_temp_monitor`, `test_event_fsm`, `test_state_transition`, `test_autosar_hal`, `test_object_oriented` を読み込んで実行する
 
 - `.vscode/settings.json` の `gtest-adapter.debugConfig` で 5 本の launch 構成名を列挙しています
 - `.vscode/launch.json` の `GTest: ...` 構成が、それぞれ `build/Test/*.exe` の実行ファイルを指します
@@ -51,8 +52,8 @@
 
 1. ビルド後に Test Explorer を開き、必要ならテスト一覧の再読込を実行する
 2. 5つの実行ファイル単位でテストが見えることを確認する
-3. まず `test_temperature` か `test_state_transition` の単体実行で動作確認する
-4. 最後に全体実行し、合計 34 テストが通ることを確認する
+3. まず `test_temperature` か `test_object_oriented` の単体実行で動作確認する
+4. 最後に全体実行し、合計 43 テストが通ることを確認する
 
 - テスト一覧が空のままなら、再ビルド後に再読込を実行する
 - `build/Test/` に実行ファイルがなければ、先に CMake Tools かコマンドラインでビルドする

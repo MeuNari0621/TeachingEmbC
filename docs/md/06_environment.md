@@ -23,6 +23,7 @@ graph TD
     SRC --> APP["📁 app/ — アプリケーション層"]
     SRC --> HAL["📁 hal/ — HAL層"]
     SRC --> BEFORE["📁 before/ — 悪い例（教材用）"]
+    SRC --> OO_DIR["📁 object_oriented/ — CでのOO風サンプル"]
     SRC --> CMAKE_SRC["📄 CMakeLists.txt"]
     VSCODE_DIR --> VSCODE_SETTINGS["📄 settings.json"]
     VSCODE_DIR --> VSCODE_EXT["📄 extensions.json"]
@@ -38,6 +39,7 @@ graph TD
     TEST --> TEST_DRV["📄 test_drv.cpp — FFF統合テスト"]
     TEST --> TEST_FSM["📄 test_event_fsm.cpp — ISR/イベントテスト"]
     TEST --> TEST_TRANS["📄 test_state_transition.cpp — 遷移純粋関数テスト"]
+    TEST --> TEST_OO["📄 test_object_oriented.cpp — OO風サンプルテスト"]
     TEST --> FFF_H["📄 fff.h — フェイク生成ヘッダ"]
     TEST --> CMAKE_TEST["📄 CMakeLists.txt"]
     
@@ -98,6 +100,7 @@ graph TD
     TEST_CMAKE --> TEST2["test_temp_monitor\nFFF統合テスト"]
     TEST_CMAKE --> TEST3["test_event_fsm\nISR/イベントテスト"]
     TEST_CMAKE --> TEST4["test_state_transition\n遷移純粋関数テスト"]
+    TEST_CMAKE --> TEST5["test_object_oriented\nOO風サンプルテスト"]
     APP_OBJ --> TEST1
     APP_OBJ --> TEST3
     APP_OBJ --> TEST4
@@ -105,6 +108,7 @@ graph TD
     GTEST_LIB --> TEST2
     GTEST_LIB --> TEST3
     GTEST_LIB --> TEST4
+    GTEST_LIB --> TEST5
     
     style ROOT fill:#fff3e0
     style FETCH fill:#e3f2fd
@@ -112,6 +116,7 @@ graph TD
     style TEST2 fill:#e8f5e9
     style TEST3 fill:#e8f5e9
     style TEST4 fill:#e8f5e9
+    style TEST5 fill:#e8f5e9
 ```
 
 ### ルートCMakeLists.txt
@@ -193,6 +198,10 @@ gtest_discover_tests(test_event_fsm)
 add_executable(test_state_transition test_state_transition.cpp)
 target_link_libraries(test_state_transition gtest_main AppLibrary)
 gtest_discover_tests(test_state_transition)
+
+add_executable(test_object_oriented test_object_oriented.cpp)
+target_link_libraries(test_object_oriented gtest_main ObjectOrientedLibrary)
+gtest_discover_tests(test_object_oriented)
 ```
 
 > **重要**: `test_temp_monitor` は HalLibrary をリンクしません。代わりに FFF がテストファイル内で HAL 関数のフェイク実装を生成するため、リンカエラーにならずにテストできます。
@@ -248,10 +257,10 @@ cmake --build .
 ctest --output-on-failure
 ```
 
-実行結果（全34テストがパス）:
+実行結果（全43テストがパス）:
 
 ```
-100% tests passed, 0 tests failed out of 30
+100% tests passed, 0 tests failed out of 43
 ```
 
 ## 6.6 VS Code GUI でビルドとテスト
@@ -261,7 +270,7 @@ ctest --output-on-failure
 1. ワークスペースを開き、推奨拡張機能の `ms-vscode.cmake-tools` と `ms-vscode.cpptools` を有効にする
 2. CMake Tools が preset を読み込んだら、ステータスバーの Configure を実行する
 3. ステータスバーの Build でビルドし、Testing ビューまたは CMake の Run Tests でテストを実行する
-4. Testing ビューで 34 テストの PASS/FAIL を確認する
+4. Testing ビューで 43 テストの PASS/FAIL を確認する
 
 確認済み:
 
@@ -296,9 +305,9 @@ Google Tests ビューとして `davidschuldenfrei.gtest-adapter` を使う場�
 ### 6.8.1 Test Explorer での確認手順
 
 1. ビルド後に Test Explorer を開き、必要ならテスト一覧の再読込を実行する
-2. `test_temperature`, `test_temp_monitor`, `test_event_fsm`, `test_state_transition`, `test_autosar_hal` の5バイナリが見えることを確認する
-3. まず純粋関数系の `test_temperature` または `test_state_transition` を単体実行する
-4. 最後に全体実行し、合計 34 テストが通ることを確認する
+2. `test_temperature`, `test_temp_monitor`, `test_event_fsm`, `test_state_transition`, `test_autosar_hal`, `test_object_oriented` の6バイナリが見えることを確認する
+3. まず純粋関数系の `test_temperature` または `test_object_oriented` を単体実行する
+4. 最後に全体実行し、合計 43 テストが通ることを確認する
 
 確認ポイント:
 
