@@ -117,6 +117,9 @@ th { background: var(--primary-light); font-weight: 600; }
 <button type="button" class="tab-btn" data-tab="ch10">第10章<br>HTML安全</button>
 <button type="button" class="tab-btn" data-tab="ch12">第12章<br>AUTOSAR</button>
 <button type="button" class="tab-btn" data-tab="ch13">第13章<br>OO設計</button>
+<button type="button" class="tab-btn" data-tab="ch14">第14章<br>契約設計</button>
+<button type="button" class="tab-btn" data-tab="ch15">第15章<br>TDD実践</button>
+<button type="button" class="tab-btn" data-tab="ch16">第16章<br>実装</button>
 <button type="button" class="tab-btn" data-action="glossary" id="glossaryBtn">用語集<br>ポップアップ</button>
 </nav>
 <div class="tab-panels">
@@ -1956,6 +1959,147 @@ int temperature_is_over(int16_t temp_x10, int16_t threshold_x10) {
 <p><strong>詳細版:</strong> <a href="md/13_object_oriented.md">組み込みCでオブジェクト指向をどう扱うか</a></p>
 </section>
 
+<!-- ===== 第14章 ===== -->
+<section class="tab-content" id="ch14">
+<h2>第14章: 契約による設計（Design by Contract）</h2>
+
+<p>「契約による設計」(DbC) は、関数やモジュールの<strong>呼び出し側</strong>と<strong>提供側</strong>の間に「契約」を定義する手法です。</p>
+
+<h3>14.1 契約の3要素</h3>
+<table>
+<tr><th>種別</th><th>英語</th><th>責任者</th><th>意味</th></tr>
+<tr><td>事前条件</td><td>Precondition</td><td>呼び出し側</td><td>関数を呼ぶ前に満たすべき条件</td></tr>
+<tr><td>事後条件</td><td>Postcondition</td><td>提供側</td><td>関数が返る時に保証する条件</td></tr>
+<tr><td>不変条件</td><td>Invariant</td><td>提供側</td><td>操作の前後で常に成り立つ条件</td></tr>
+</table>
+
+<h3>14.2 組み込みCでのDbC実装</h3>
+<pre><code>/* dbc_assert.h — 契約マクロ */
+#define DBC_REQUIRE(expr) \
+    do { if (!(expr)) dbc_violation_handler("PRE", #expr, __FILE__, __LINE__); } while(0)
+#define DBC_ENSURE(expr) \
+    do { if (!(expr)) dbc_violation_handler("POST", #expr, __FILE__, __LINE__); } while(0)
+#define DBC_INVARIANT(expr) \
+    do { if (!(expr)) dbc_violation_handler("INV", #expr, __FILE__, __LINE__); } while(0)</code></pre>
+
+<div class="note"><strong>ポイント:</strong> <code>NDEBUG</code> 定義時はゼロコストで除去。テスト環境では違反を記録して検査、実機ではフェイルセーフ処理。</div>
+
+<h3>14.3 具体例: バッテリ監視モジュール</h3>
+<pre><code>uint16_t battery_raw_to_mv(uint16_t raw_adc)
+{
+    DBC_REQUIRE(raw_adc &lt;= ADC_MAX);       /* 事前条件 */
+    if (raw_adc &gt; ADC_MAX) { return VREF_MV; }
+
+    uint16_t voltage_mv = (uint16_t)((uint32_t)raw_adc * VREF_MV / ADC_MAX);
+
+    DBC_ENSURE(voltage_mv &lt;= VREF_MV);    /* 事後条件 */
+    return voltage_mv;
+}</code></pre>
+
+<h3>14.4 テストでの契約検証</h3>
+<pre><code>TEST(BatteryMonitorInit, PreconditionViolation) {
+    battery_monitor_t ctx;
+    dbc_reset_violations();
+    battery_monitor_init(&amp;ctx, 2700, 2800, 3100); // critical &gt;= low → 違反
+    EXPECT_GT(dbc_get_violation_count(), 0);
+    EXPECT_STREQ("PRE", dbc_get_last_violation_type());
+}</code></pre>
+
+<p><strong>詳細版:</strong> <a href="md/14_design_by_contract.md">契約による設計</a></p>
+</section>
+
+<!-- ===== 第15章 ===== -->
+<section class="tab-content" id="ch15">
+<h2>第15章: テスト駆動開発（TDD）実践</h2>
+
+<p>第7章では AI 駆動開発と TDD の関係を説明しました。本章では<strong>人間が手を動かす TDD</strong> の具体的な進め方を示します。</p>
+
+<div class="mermaid">
+graph LR
+    RED["🔴 Red<br>テストを書く"] --> GREEN["🟢 Green<br>最小限の実装"]
+    GREEN --> REFACTOR["🔵 Refactor<br>リファクタリング"]
+    REFACTOR --> RED
+</div>
+
+<h3>15.1 サイクル1: ADC → 電圧変換</h3>
+<p><strong>🔴 Red:</strong> テストを書く（関数が存在しないので失敗）</p>
+<pre><code>TEST(BatteryRawToMv, ZeroInputReturnsZero) {
+    EXPECT_EQ(0, battery_raw_to_mv(0));
+}
+TEST(BatteryRawToMv, MaxInputReturnsVref) {
+    EXPECT_EQ(3300, battery_raw_to_mv(4095));
+}</code></pre>
+
+<p><strong>🟢 Green:</strong> 最小限の実装</p>
+<pre><code>uint16_t battery_raw_to_mv(uint16_t raw_adc) {
+    return (uint16_t)((uint32_t)raw_adc * 3300 / 4095);
+}</code></pre>
+
+<p><strong>🔵 Refactor:</strong> 契約の追加、マジックナンバーの定数化</p>
+
+<h3>15.2 サイクル2: 電圧 → 状態判定</h3>
+<pre><code>TEST_F(BatteryMonitorTest, NormalVoltage) {
+    EXPECT_EQ(BATTERY_STATE_NORMAL, battery_evaluate(&amp;ctx_, 2800));
+}
+TEST_F(BatteryMonitorTest, CriticalVoltage) {
+    EXPECT_EQ(BATTERY_STATE_CRITICAL, battery_evaluate(&amp;ctx_, 2400));
+}</code></pre>
+
+<h3>15.3 サイクル3: オーケストレータの統合</h3>
+<pre><code>TEST_F(BatteryMonitorTest, UpdateFromAdc_Normal) {
+    battery_state_t state = battery_monitor_update(&amp;ctx_, 3500);
+    EXPECT_EQ(BATTERY_STATE_NORMAL, state);
+    EXPECT_EQ(state, ctx_.last_state);
+    EXPECT_LE(ctx_.last_voltage_mv, 3300);
+}</code></pre>
+
+<div class="note"><strong>TDD と DbC の相乗効果:</strong> DbC で事前条件を定義 → テストで違反を検出 → 実装のバグを早期発見。</div>
+
+<p><strong>詳細版:</strong> <a href="md/15_tdd.md">テスト駆動開発 実践</a></p>
+</section>
+
+<!-- ===== 第16章 ===== -->
+<section class="tab-content" id="ch16">
+<h2>第16章: 実装 — 契約とテストに導かれる実装</h2>
+
+<p>契約（第14章）とテスト（第15章）で「何を作るか」が明確になった状態で、<strong>安全で保守しやすい実装</strong>を書く方法を示します。</p>
+
+<h3>16.1 実装の指針</h3>
+<table>
+<tr><th>指針</th><th>内容</th><th>効果</th></tr>
+<tr><td>純粋関数の活用</td><td>ロジックを副作用なしの関数に分離</td><td>テスト容易、並行安全</td></tr>
+<tr><td>薄いオーケストレータ</td><td>純粋関数を組み合わせるだけ</td><td>可読性、保守性</td></tr>
+<tr><td>契約アサーション</td><td>DBC_REQUIRE / ENSURE / INVARIANT</td><td>開発時の安全網</td></tr>
+<tr><td>防御的処理</td><td>契約違反時も安全に振る舞う</td><td>リリース時の堅牢性</td></tr>
+</table>
+
+<h3>16.2 実装の完成形</h3>
+<pre><code>battery_state_t battery_monitor_update(battery_monitor_t *ctx, uint16_t raw_adc)
+{
+    DBC_REQUIRE(ctx != 0);
+    DBC_REQUIRE(raw_adc &lt;= ADC_MAX);
+    if (ctx == 0) { return BATTERY_STATE_INVALID; }
+
+    uint16_t voltage_mv = battery_raw_to_mv(raw_adc);
+    battery_state_t state = battery_evaluate(ctx, voltage_mv);
+    ctx-&gt;last_voltage_mv = voltage_mv;
+    ctx-&gt;last_state = state;
+
+    DBC_ENSURE(ctx-&gt;last_state == state);
+    DBC_INVARIANT(ctx-&gt;last_voltage_mv &lt;= VREF_MV);
+    return state;
+}</code></pre>
+
+<h3>16.3 検証コマンド</h3>
+<pre><code>cmake --preset default
+cmake --build build
+ctest --test-dir build --output-on-failure</code></pre>
+
+<div class="note"><strong>リリースビルド:</strong> <code>NDEBUG</code> 定義により契約アサーションはゼロコストで除去。防御的処理はリリースでも残る。</div>
+
+<p><strong>詳細版:</strong> <a href="md/16_implementation.md">実装 — 契約とテストに導かれる実装</a></p>
+</section>
+
 </div>
 </div><!-- tab-container -->
 
@@ -2011,6 +2155,10 @@ int temperature_is_over(int16_t temp_x10, int16_t threshold_x10) {
 <tr><td>エンディアン</td><td>Endianness</td><td>バイトの並び順。リトルエンディアンとビッグエンディアン</td></tr>
 <tr><td>FPU</td><td>Floating Point Unit</td><td>浮動小数点演算ユニット。ないMCUでは浮動小数点を避ける</td></tr>
 <tr><td>GMock</td><td>Google Mock</td><td>Google製モックフレームワーク。C++クラスのモック自動生成</td></tr>
+<tr><td>DbC</td><td>Design by Contract</td><td>契約による設計。事前条件・事後条件・不変条件で関数の仕様を定義する手法</td></tr>
+<tr><td>事前条件</td><td>Precondition</td><td>関数呼び出し側が満たすべき条件。DBC_REQUIREで表明</td></tr>
+<tr><td>事後条件</td><td>Postcondition</td><td>関数が返す時に保証する条件。DBC_ENSUREで表明</td></tr>
+<tr><td>不変条件</td><td>Invariant</td><td>操作の前後で常に成り立つ条件。DBC_INVARIANTで表明</td></tr>
 </tbody>
 </table>
 </div>

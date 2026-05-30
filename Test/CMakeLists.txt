@@ -57,3 +57,8 @@ gtest_discover_tests(test_autosar_hal)
 add_executable(test_object_oriented test_object_oriented.cpp)
 target_link_libraries(test_object_oriented gtest_main ObjectOrientedLibrary)
 gtest_discover_tests(test_object_oriented)
+
+# === test_dbc_tdd（契約による設計 + TDD + 実装のテスト） ===
+add_executable(test_dbc_tdd test_dbc_tdd.cpp)
+target_link_libraries(test_dbc_tdd gtest_main DbcLibrary)
+gtest_discover_tests(test_dbc_tdd)
