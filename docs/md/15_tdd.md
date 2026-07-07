@@ -37,11 +37,11 @@ graph LR
 #### 🔴 Red: テストを書く
 
 ```cpp
-TEST(BatteryRawToMv, ZeroInputReturnsZero) {
+TEST(BatteryRawToMv, Precondition_ZeroIsValid) {
     EXPECT_EQ(0, battery_raw_to_mv(0));
 }
 
-TEST(BatteryRawToMv, MaxInputReturnsVref) {
+TEST(BatteryRawToMv, Precondition_MaxIsValid) {
     EXPECT_EQ(3300, battery_raw_to_mv(4095));
 }
 
@@ -68,18 +68,27 @@ uint16_t battery_raw_to_mv(uint16_t raw_adc)
 cmake --build build && ctest --test-dir build --output-on-failure -R BatteryRawToMv
 ```
 
-#### 🔵 Refactor: 契約の追加
+#### 🔵 Refactor: 防御的処理と事後条件テストの追加
 
 ```c
 uint16_t battery_raw_to_mv(uint16_t raw_adc)
 {
-    DBC_REQUIRE(raw_adc <= ADC_MAX);
+    /* 防御的処理: 範囲外は最大電圧として返す */
     if (raw_adc > ADC_MAX) { return VREF_MV; }
 
     uint16_t voltage_mv = (uint16_t)((uint32_t)raw_adc * VREF_MV / ADC_MAX);
 
-    DBC_ENSURE(voltage_mv <= VREF_MV);
     return voltage_mv;
+}
+```
+
+事後条件をテストで検証:
+```cpp
+TEST(BatteryRawToMv, Postcondition_VoltageInRange) {
+    for (uint16_t adc = 0; adc <= 4095; adc += 100) {
+        uint16_t mv = battery_raw_to_mv(adc);
+        EXPECT_LE(mv, 3300) << "事後条件違反: adc=" << adc;
+    }
 }
 ```
 
@@ -146,6 +155,9 @@ TEST_F(BatteryMonitorTest, UpdateFromAdc_Normal) {
 ```c
 battery_state_t battery_monitor_update(battery_monitor_t *ctx, uint16_t raw_adc)
 {
+    /* 防御的処理: NULLポインタ */
+    if (ctx == 0) { return BATTERY_STATE_INVALID; }
+
     uint16_t voltage_mv = battery_raw_to_mv(raw_adc);
     battery_state_t state = battery_evaluate(ctx, voltage_mv);
     ctx->last_voltage_mv = voltage_mv;
@@ -159,7 +171,7 @@ battery_state_t battery_monitor_update(battery_monitor_t *ctx, uint16_t raw_adc)
 ```mermaid
 graph TD
     TDD["TDD"] --> SPEC["仕様を形式化"]
-    DBC["DbC"] --> CONTRACT["契約を明示化"]
+    DBC["DbC"] --> CONTRACT["契約をヘッダに明示化"]
     SPEC --> VERIFY["テストが契約を検証"]
     CONTRACT --> VERIFY
     VERIFY --> BUG["バグの早期検出"]
@@ -172,9 +184,9 @@ graph TD
 
 | 組み合わせ | 効果 |
 |-----------|------|
-| DbC で事前条件を定義 → テストで違反を検出 | 呼び出し側のバグを早期発見 |
-| DbC で事後条件を定義 → テストで全パスを検証 | 実装のバグを早期発見 |
-| DbC で不変条件を定義 → テストで連続操作を検証 | 状態管理のバグを早期発見 |
+| ヘッダに事前条件を定義 → テストで境界値を検証 | 呼び出し側のバグを早期発見 |
+| ヘッダに事後条件を定義 → テストで全パスを検証 | 実装のバグを早期発見 |
+| ヘッダに不変条件を定義 → テストで連続操作を検証 | 状態管理のバグを早期発見 |
 
 ## 15.5 まとめ
 
