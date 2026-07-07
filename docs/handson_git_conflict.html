@@ -264,6 +264,27 @@ gitGraph
 </table>
 <div class="danger"><strong>まとめ:</strong> 「out-of-date な状態でPRを作る／マージする」こと自体は安全です。危険なのは<strong>共有ブランチへのforce push</strong>と<strong>コンフリクト解消時の不注意な片側採用</strong>の2つだけです。この2つさえ避ければ、複数人が並行して作業しても、通常のPRフローで相手の変更が失われることはありません。</div>
 
+<h4>もう一つの不安: 「PRのベース（分岐元）が古いこと自体が、マージ先に古い内容を持ち込んでしまうのでは？」</h4>
+<p>これも非常によくある疑問です。「Bのブランチは、Aがまだ変更する前の<strong>古いbattery_monitor.c</strong>を土台にしている。そんな“古い土台”を含むBのブランチをマージしたら、その“古さ”がマージ先にも反映されて、Aの新しい変更が古い内容に戻ってしまうのでは？」という懸念です。</p>
+<div class="note"><strong>結論: なりません。</strong> Gitのマージは「Bのブランチのファイル全体」を持ち込むのではなく、<strong>Bのコミットが実際に加えた差分（パッチ）だけ</strong>をベースの最新版に適用します。Bが触っていない行は、たとえBのローカルコピー上では「古い内容」のままだったとしても、マージ結果には一切影響しません。</div>
+
+<h4>具体例で確認する</h4>
+<p><code>battery_monitor.c</code>の<code>battery_evaluate()</code>を例に、3つの時点のファイル内容を比較します。</p>
+<table>
+<tr><th>時点</th><th>over判定</th><th>critical/low判定</th><th>備考</th></tr>
+<tr><td>① merge-base（A/B分岐点）</td><td><code>if (voltage_mv &gt; ctx-&gt;over_threshold_mv)</code></td><td>ヒステリシス処理なし</td><td>AもBもここから分岐</td></tr>
+<tr><td>② ベース最新（Aマージ後）</td><td><code>over</code>判定はそのまま</td><td><strong>Aがヒステリシス処理を追加済み</strong></td><td>Bはまだこの変更を知らない</td></tr>
+<tr><td>③ Bのブランチ（分岐時点のまま）</td><td>Bが<strong>過電圧ラッチ処理を追加</strong></td><td>ヒステリシス処理は①のまま（Bのローカルには存在しない）</td><td>Bの差分は「ラッチ処理の追加」のみ</td></tr>
+<tr><td>④ マージ結果</td><td>Bが追加したラッチ処理</td><td><strong>Aが追加したヒステリシス処理（②から継承）</strong></td><td>Bは③の「ヒステリシス処理がない状態」を持ち込んだのではなく、②の上にBの差分だけを適用</td></tr>
+</table>
+<p>ポイントは③と④の違いです。Bのローカルファイルには実際には「ヒステリシス処理がない、古い<code>battery_evaluate()</code>」が存在していますが、マージ時にGitが見ているのは<strong>「Bが③で何を書き加えたか」という差分だけ</strong>です。Bが critical/low 判定部分に何も変更を加えていないため、その部分は②（Aの最新版）がそのまま残ります。「Bのファイル全体で上書きする」わけではないため、Aの新しい変更が古い内容に戻ることはありません。</p>
+
+<h4>実際に検証してみる</h4>
+<pre># マージ後のmultiBranch_testに、A由来・B由来の両方の変更が残っているか確認
+git show origin/multiBranch_test:src/dbc/battery_monitor.c | grep -n "HYSTERESIS_MV\|OVERVOLTAGE_LATCH_MARGIN_MV"
+# => 両方の#defineが出力されれば、どちらの変更も失われていないことが確認できる</pre>
+<div class="warn"><strong>唯一の例外:</strong> Bが③の時点で、Aが変更したのと<strong>同じ行（over/critical判定そのもの）</strong>にも手を加えていた場合は、そこはコンフリクトとして手動解消が必要になります（「誤解1」参照）。その場合でも、解消時にマーカーの両側をきちんと読んで両方の変更を反映させれば、古い内容がベースに逆流することはありません。</div>
+
 <h3>誤解3: 「同じ行を両者が変更したら必ずコンフリクトになる」</h3>
 <p>これも厳密には誤解です。<strong>両者が全く同じ内容に変更した場合（結果が同一）は、Gitはコンフリクトとして扱わず自動的に1つにまとめます。</strong> コンフリクトになるのは「同じ行（またはその周辺）に対して、互いに<u>異なる</u>変更を加えた」場合だけです。</p>
 
