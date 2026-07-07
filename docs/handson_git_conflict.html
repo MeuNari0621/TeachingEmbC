@@ -356,23 +356,35 @@ git show origin/multiBranch_test:src/dbc/battery_monitor.c | grep -n "HYSTERESIS
 
 <section id="trainer">
 <h2>8. トレーナー向け：再現・配布手順</h2>
-<h3>8.1 演習環境のリセット</h3>
-<pre># ローカルの演習用ブランチを削除して起点に戻す
+
+<h3>8.1 演習の起点について（重要）</h3>
+<div class="warn"><strong>注意:</strong> 本教材の元になった演習（PR #6・#7）は、実際に <code>multiBranch_test</code> へマージ済みです。そのため<strong>現在の<code>multiBranch_test</code>には、開発者A・Bのヒステリシス／過電圧ラッチ処理が既に両方含まれています</strong>。同じ内容で全く同じコンフリクトを再現したい場合、<code>multiBranch_test</code>を演習前の状態に force push で巻き戻すことは<strong>絶対に行わないでください</strong>（共有ブランチへのforce pushは本教材で「危険」と教えている操作そのものです）。</div>
+<p>代わりに、演習前の状態を指す<strong>タグ</strong> <code>handson-git-conflict-baseline</code>（<code>multiBranch_test</code>を書き換えず追加しただけの、非破壊的な参照）を用意しています。再演習する場合はこのタグから分岐してください。</p>
+<pre># タグを起点に演習用ブランチを作り直す（multiBranch_test 自体は一切変更しない）
+git fetch origin --tags
+git checkout -b dev-a/&lt;演習名&gt; handson-git-conflict-baseline
+git checkout -b dev-b/&lt;演習名&gt; handson-git-conflict-baseline
+# 以降は本編の Step A-1 / Step B-1 と同じ要領で進める（ただし最終PRのbaseは
+# multiBranch_test ではなく、演習専用の使い捨てブランチ・使い捨てリポジトリを推奨）</pre>
+<div class="note">この手順は実際にローカルのみ（<code>trial-main</code>/<code>trial-dev-a</code>/<code>trial-dev-b</code> という使い捨てブランチ、pushなし）で動作確認済みです。タグから分岐 → 両者が同じ挿入位置に別々の変更を追加 → 片方をマージ → もう片方をリベース、で本編と同じ内容のコンフリクトマーカーが再現されました。</div>
+
+<h3>8.2 演習環境のリセット（受講者のローカル作業ブランチのみ）</h3>
+<pre># 受講者ローカルの演習用ブランチを削除して起点に戻す
 git checkout multiBranch_test
 git branch -D dev-a/battery-hysteresis dev-b/battery-overvoltage-latch
 git push origin --delete dev-a/battery-hysteresis dev-b/battery-overvoltage-latch
-# 起点ブランチを最新化
+# multiBranch_test 自体は最新のリモートに追従させるだけ（reset --hard で巻き戻さない）
 git fetch origin
-git reset --hard origin/multiBranch_test</pre>
-<div class="warn">上記はローカル・リモートのブランチを削除する破壊的操作です。実行前に対象ブランチ名を必ず確認してください。</div>
+git merge --ff-only origin/multiBranch_test</pre>
+<div class="warn">上記はローカル・リモートの<strong>演習用feature branch</strong>を削除する破壊的操作です。<code>multiBranch_test</code>や<code>main</code>など共有ブランチには <code>reset --hard</code> や <code>push --force</code> を行わないでください。実行前に対象ブランチ名を必ず確認してください。</div>
 
-<h3>8.2 受講者ごとに独立した演習にする場合</h3>
+<h3>8.3 受講者ごとに独立した演習にする場合</h3>
 <ul>
 <li>各受講者（ペア）ごとにforkまたは専用ブランチ名（例: <code>dev-a/&lt;name&gt;</code>）を使い分ける</li>
-<li>同じ<code>multiBranch_test</code>を共有する場合は、演習前に必ずリセット手順を実施してから開始する</li>
+<li>同じ<code>multiBranch_test</code>を共有する場合は、演習前に必ず<code>handson-git-conflict-baseline</code>タグから分岐し直す</li>
 </ul>
 
-<h3>8.3 教材の拡張案（他の組み込み現場ケース）</h3>
+<h3>8.4 教材の拡張案（他の組み込み現場ケース）</h3>
 <ul>
 <li>AUTOSAR層（<code>Adc.c</code> / <code>Dio.c</code>）のレジスタ・API変更が競合するケース</li>
 <li>割り込みハンドラ（ISR）の追加・変更が同一ファイルで競合するケース</li>
