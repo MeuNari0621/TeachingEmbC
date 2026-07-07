@@ -95,20 +95,20 @@ footer { text-align: center; color: var(--text-secondary); font-size: 0.8rem; pa
 <p><code>multiBranch_test</code> を起点に、開発者A・開発者Bがそれぞれ独立したブランチで作業し、Aを先にマージ、Bはリベースでコンフリクトを解消してからマージする流れです。</p>
 <div class="mermaid">
 gitGraph
-   commit id: "multiBranch_test (起点)"
-   branch dev-a/battery-hysteresis
-   branch dev-b/battery-overvoltage-latch
-   checkout dev-a/battery-hysteresis
-   commit id: "Aの実装: ヒステリシス追加"
-   checkout multiBranch_test
-   merge dev-a/battery-hysteresis id: "PR(A)マージ"
-   checkout dev-b/battery-overvoltage-latch
-   commit id: "Bの実装: 過電圧ラッチ追加"
-   commit id: "リベースで競合解消 (force-with-lease push)"
-   checkout multiBranch_test
-   merge dev-b/battery-overvoltage-latch id: "PR(B)マージ"
+   commit id: "multiBranch_test-start"
+   branch "dev-a-battery-hysteresis"
+   branch "dev-b-battery-overvoltage-latch"
+   checkout "dev-a-battery-hysteresis"
+   commit id: "A-impl-hysteresis"
+   checkout main
+   merge "dev-a-battery-hysteresis" id: "PR-A-merged"
+   checkout "dev-b-battery-overvoltage-latch"
+   commit id: "B-impl-overvoltage-latch"
+   commit id: "B-rebase-resolve-conflict"
+   checkout main
+   merge "dev-b-battery-overvoltage-latch" id: "PR-B-merged"
 </div>
-<p class="note">実際の <code>git rebase</code> はコミット履歴を書き換える操作のため、上図の「リベースで競合解消」はBのブランチの履歴が<strong>Aのマージ後のmultiBranch_testの上に付け替えられた</strong>ことを表しています（マージコミットとは異なる仕組みです）。</p>
+<p class="note">実際のブランチ名は <code>dev-a/battery-hysteresis</code> / <code>dev-b/battery-overvoltage-latch</code> ですが、Mermaidのgraph表示の都合上ハイフン区切りで表記しています。<code>git rebase</code> はコミット履歴を書き換える操作のため、上図の「B-rebase-resolve-conflict」はBのブランチの履歴が<strong>Aのマージ後のmultiBranch_testの上に付け替えられた</strong>ことを表しています（マージコミットとは異なる仕組みです）。</p>
 </section>
 
 <section id="prep">
@@ -243,13 +243,13 @@ flowchart TD
 <p>マージ結果は「ベースブランチの<strong>現在の最新コミットの内容</strong>」＋「自分のブランチが merge-base から積み増した差分」の<strong>合成</strong>になります。ベースブランチを分岐時点まで巻き戻す操作は一切行われません。</p>
 <div class="mermaid">
 gitGraph
-   commit id: "merge-base (A/B分岐点)"
-   branch dev-b/battery-overvoltage-latch
-   commit id: "Bの変更"
+   commit id: "merge-base"
+   branch "dev-b-battery-overvoltage-latch"
+   commit id: "B-change"
    checkout main
-   commit id: "Aの変更"
-   commit id: "PR(A)マージ"
-   merge dev-b/battery-overvoltage-latch id: "PR(B)マージ: AもBも両方残る"
+   commit id: "A-change"
+   commit id: "PR-A-merged"
+   merge "dev-b-battery-overvoltage-latch" id: "PR-B-merged-both-kept"
 </div>
 <p class="note">実際に本ハンズオンでも、開発者Bのブランチは開発者Aのマージ<strong>前</strong>のコミットから分岐していましたが、PR #7 をマージした後の <code>multiBranch_test</code> には、A由来の <code>HYSTERESIS_MV</code> / <code>hysteresis_active</code> と、B由来の <code>OVERVOLTAGE_LATCH_MARGIN_MV</code> / <code>fault_latched</code> が<strong>両方とも</strong>残っていることを、実際にビルド・テストで確認済みです。「Bが古い状態から始めた」ことは、最終結果からAの変更が失われる理由には<strong>なりません</strong>。</p>
 
