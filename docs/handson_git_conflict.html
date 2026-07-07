@@ -230,6 +230,40 @@ flowchart TD
 <p>今回のB-1.5のケースで言えば、Bのブランチは「Aのマージ後のmultiBranch_test」に対して out-of-date でした。<strong>もしAとBが別々のファイル・別々の行を変更していたら、out-of-dateではあってもコンフリクトにはならず、そのままマージできていた</strong>はずです。今回は<code>#define</code>と構造体フィールドの挿入位置が偶然重なっていたため、out-of-date であることに加えて真のコンフリクトも発生しました。</p>
 <p class="note">教訓: 「PRが赤い(out-of-date)＝コンフリクトがある」ではありません。まず <code>git fetch</code> して <code>rebase</code>（または <code>merge</code>）を試み、実際にコンフリクトマーカーが出るかどうかで初めて「本当に重なっているか」が判明します。</p>
 
+<h3>🔥 重点解説: 「PRをマージすると、先に進んでいた相手の変更を巻き戻してしまうのでは？」という不安</h3>
+<div class="warn">これは初心者が最も不安に感じやすいポイントです。「自分のブランチは古いコミットから分岐している。そんな古い状態のPRをマージしたら、その後に相手が積んだ変更が消えてしまうのでは？」という懸念ですが、<strong>結論から言うと通常の手順（merge / rebase）を踏む限り、相手の変更が消えることはありません。</strong></div>
+
+<h4>原理: PRのマージは「古い分岐点」ではなく「ベースの最新コミット」を基準に行われる</h4>
+<p>GitHubで<code>gh pr merge</code>やマージボタンを押したとき（あるいはローカルで<code>git merge</code>/<code>git rebase</code>したとき）、Gitが比較するのは次の3点です。</p>
+<ul>
+<li><strong>共通の祖先（merge-base）</strong>: AとBが分岐した時点のコミット</li>
+<li><strong>ベースブランチの現在の最新コミット</strong>: Aの変更が既にマージされた後の<code>multiBranch_test</code></li>
+<li><strong>自分のブランチの最新コミット</strong>: Bが積んだ変更</li>
+</ul>
+<p>マージ結果は「ベースブランチの<strong>現在の最新コミットの内容</strong>」＋「自分のブランチが merge-base から積み増した差分」の<strong>合成</strong>になります。ベースブランチを分岐時点まで巻き戻す操作は一切行われません。</p>
+<div class="mermaid">
+gitGraph
+   commit id: "merge-base (A/B分岐点)"
+   branch dev-b/battery-overvoltage-latch
+   commit id: "Bの変更"
+   checkout main
+   commit id: "Aの変更"
+   commit id: "PR(A)マージ"
+   merge dev-b/battery-overvoltage-latch id: "PR(B)マージ: AもBも両方残る"
+</div>
+<p class="note">実際に本ハンズオンでも、開発者Bのブランチは開発者Aのマージ<strong>前</strong>のコミットから分岐していましたが、PR #7 をマージした後の <code>multiBranch_test</code> には、A由来の <code>HYSTERESIS_MV</code> / <code>hysteresis_active</code> と、B由来の <code>OVERVOLTAGE_LATCH_MARGIN_MV</code> / <code>fault_latched</code> が<strong>両方とも</strong>残っていることを、実際にビルド・テストで確認済みです。「Bが古い状態から始めた」ことは、最終結果からAの変更が失われる理由には<strong>なりません</strong>。</p>
+
+<h4>では、本当に相手の変更を消してしまう危険があるのはどんな時か</h4>
+<p>「out-of-date だから」ではなく、次のような<strong>操作ミス</strong>がある場合にのみ、相手の変更を消すリスクがあります。ここが本当に注意すべきポイントです。</p>
+<table>
+<tr><th>危険な操作</th><th>何が起きるか</th><th>対策</th></tr>
+<tr><td>共有ブランチ（<code>multiBranch_test</code>など）へ古いローカル状態から <code>git push --force</code></td><td>リモートの履歴そのものを、自分の古いローカル履歴で丸ごと上書きしてしまい、相手のコミットが本当に消える</td><td>共有ブランチには<strong>force pushしない</strong>のが原則。個人のfeatureブランチのみ<code>--force-with-lease</code>で運用する</td></tr>
+<tr><td>コンフリクト解消時に <code>git checkout --ours &lt;file&gt;</code> などで機械的に「自分の版」を採用</td><td>マーカーの中身を精査せず片側を丸ごと採用すると、相手の変更（このケースではAのヒステリシス処理）がファイルごと消える</td><td>コンフリクト解消は必ずマーカーの両側を読み、機能として両立できないか検討してから編集する</td></tr>
+<tr><td>相手の変更を取り込まないまま、意図的に古い内容で新しいコミットを作る（例: 手元のバックアップから丸ごと上書き）</td><td>Gitの3-wayマージの外側で行われる操作なので、単純な「上書きコミット」として消えたように見える</td><td>ファイルを丸ごと上書きするのではなく、必ず <code>git fetch</code> → <code>rebase</code>/<code>merge</code> のワークフローに乗せる</td></tr>
+<tr><td>古いローカルの参照（<code>git reset --hard &lt;古いコミット&gt;</code>）を共有ブランチに force push</td><td>ローカルでは正しく見えても、実際には相手の最新コミットより古い状態を「正」としてリモートに反映してしまう</td><td>共有ブランチをリセットする前に必ず <code>git fetch</code> して最新を確認する</td></tr>
+</table>
+<div class="danger"><strong>まとめ:</strong> 「out-of-date な状態でPRを作る／マージする」こと自体は安全です。危険なのは<strong>共有ブランチへのforce push</strong>と<strong>コンフリクト解消時の不注意な片側採用</strong>の2つだけです。この2つさえ避ければ、複数人が並行して作業しても、通常のPRフローで相手の変更が失われることはありません。</div>
+
 <h3>誤解3: 「同じ行を両者が変更したら必ずコンフリクトになる」</h3>
 <p>これも厳密には誤解です。<strong>両者が全く同じ内容に変更した場合（結果が同一）は、Gitはコンフリクトとして扱わず自動的に1つにまとめます。</strong> コンフリクトになるのは「同じ行（またはその周辺）に対して、互いに<u>異なる</u>変更を加えた」場合だけです。</p>
 
