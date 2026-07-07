@@ -160,11 +160,28 @@ git push -u origin dev-b/battery-overvoltage-latch
 gh pr create --base multiBranch_test --head dev-b/battery-overvoltage-latch --title "feat: 過電圧ラッチ機能を追加（開発者B）"</pre>
 </div>
 
-<h3><span class="badge badge-b">開発者B</span> Step B-2: Aマージ後にリベースしてコンフリクト体験</h3>
+<h3><span class="badge badge-b">開発者B</span> Step B-1.5: コンフリクトに気づくタイミング</h3>
+<div class="role-b">
+<p>開発者Bは、この時点では<strong>まだ何もおかしいことに気づいていません</strong>。ローカルのビルド・テストは問題なく通り、自分のPR (#7) もエラーなく作成できているためです。気づくきっかけは主に次の2つです。</p>
+<ol>
+<li><strong>GitHub PR画面での気づき:</strong> 開発者AのPR (#6) がマージされた直後、PR #7 のページを開くと GitHub が自動的に <code>This branch has conflicts that must be resolved</code>（このブランチにはマージ前に解決が必要なコンフリクトがあります）という警告を表示します。これは<strong>Bが何も操作していなくても</strong>、GitHub側がベースブランチ（<code>multiBranch_test</code>）とBのブランチを比較して検知するものです。</li>
+<li><strong>ローカルでの気づき:</strong> Bがローカルで最新化しようとして <code>git fetch origin</code> を実行し、<code>git status</code> や <code>git log origin/multiBranch_test..HEAD</code> を見ると、自分のブランチが「Aのマージコミットを含まない、分岐したままの状態」であることに気づきます。</li>
+</ol>
+<div class="warn"><strong>体験ポイント:</strong> ここで「自分は何も壊していないのに、なぜ急にPRが赤くなるのか？」を実際に確認させてください。原因は自分の変更ではなく、<strong>ベースブランチが自分の知らない間に進んでいた</strong>ことにあります。組み込み開発では「相手の変更に気づかないままローカルで作業を続ける」ことが最も典型的なコンフリクトの温床です。</div>
+<h4>merge か rebase か、この教材で rebase を選ぶ理由</h4>
+<table>
+<tr><th>選択肢</th><th>内容</th><th>この教材での採用</th></tr>
+<tr><td><code>git merge origin/multiBranch_test</code></td><td>Bのブランチに、multiBranch_testを取り込むマージコミットを作る。履歴が分岐したまま残る。</td><td>他の人ともBブランチを共有している場合はこちらが安全（履歴を書き換えないため）</td></tr>
+<tr><td><code>git rebase origin/multiBranch_test</code></td><td>Bのコミットを、最新のmultiBranch_testの上に「付け替える」。履歴が一本の直線になり、PRの差分もBの変更だけに見える。</td><td>採用。Bのブランチは自分専用（他の人がpullしていない）ため、履歴を書き換えても安全。PRのdiffが読みやすくなるメリットを優先</td></tr>
+</table>
+<div class="note">判断基準: <strong>そのブランチをまだ自分しか使っていないか</strong>がポイントです。誰かが既にpullして作業している共有ブランチをrebaseすると、相手の履歴と食い違い、二次的なコンフリクトを引き起こします。featureブランチのような「個人の作業ブランチ」はrebase、共有ブランチはmergeが基本方針です。</div>
+</div>
+
+<h3><span class="badge badge-b">開発者B</span> Step B-2: リベースしてコンフリクト解消を体験する</h3>
 <div class="role-b">
 <pre>git fetch origin
 git rebase origin/multiBranch_test
-# ここでコンフリクトが発生する
+# ここでコンフリクトが発生する（Step B-1.5で予告した通り）
 git status
 # コンフリクトマーカーを手動で解消（次章参照）
 git add &lt;解消したファイル&gt;
@@ -172,6 +189,7 @@ git rebase --continue
 cmake --build build
 ctest --test-dir build --output-on-failure
 git push --force-with-lease -u origin dev-b/battery-overvoltage-latch</pre>
+<p>rebase実行直後、ターミナルに<br><code>CONFLICT (content): Merge conflict in src/dbc/battery_monitor.c</code><br><code>CONFLICT (content): Merge conflict in src/app/temp_alarm_fsm.h</code><br>と表示される瞬間が「実際にコンフリクトに直面する体験」です。<code>git status</code> で <code>both modified:</code> と表示されるファイルが、解消が必要なファイルです。</p>
 </div>
 
 <h3><span class="badge badge-b">開発者B</span> Step B-3: PRマージ</h3>
@@ -182,6 +200,9 @@ git push --force-with-lease -u origin dev-b/battery-overvoltage-latch</pre>
 
 <section id="conflict">
 <h2>5. コンフリクトの読み方と対処</h2>
+
+<h3>5.0 コンフリクトは「偶然」ではなく「変更箇所の重なり」で起きる</h3>
+<p>今回、開発者Aと開発者Bは<strong>お互いの実装を見ずに</strong>同じ2ファイル（<code>battery_monitor.c</code> / <code>temp_alarm_fsm.h</code>）を変更しました。実務ではよくあることで、コンフリクトは「誰かのミス」ではなく「変更箇所がたまたま重なった」だけで起こります。重要なのは、それに<strong>いつ気づき、どう解消するか</strong>です（Step B-1.5参照）。</p>
 
 <h3>5.1 なぜ「一部は自動マージ」され「一部は競合」するのか</h3>
 <p>Gitの3-way マージは<strong>行単位の差分</strong>で判断します。AとBがそれぞれ別の <code>if-else</code> 分岐を「異なる挿入位置」に追加した場合は自動マージされますが、<strong>同じ行（例: 同じ場所への<code>#define</code>追加や、構造体の同じ末尾へのフィールド追加）</strong>を変更すると競合します。</p>
