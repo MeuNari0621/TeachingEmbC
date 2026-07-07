@@ -56,6 +56,25 @@ th { background: var(--primary-light); font-weight: 600; }
 .badge-a { background: #e3f2fd; color: #1565c0; }
 .badge-b { background: #f3e5f5; color: #6a1b9a; }
 footer { text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 1rem; }
+
+/* GUI操作ガイド */
+.gui-box { border: 1px solid var(--border); border-radius: var(--radius); background: #f7f9fb; padding: 1rem 1.1rem; margin: 0.75rem 0; }
+.gui-box-title { font-weight: 700; font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem; }
+.gui-steps { list-style: none; padding-left: 0; counter-reset: gui-step; }
+.gui-steps li { counter-increment: gui-step; position: relative; padding-left: 2.2rem; margin-bottom: 0.7rem; }
+.gui-steps li::before { content: counter(gui-step); position: absolute; left: 0; top: 0; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--primary); color: #fff; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.mockup { border: 1px solid #cfd8dc; border-radius: 6px; background: #eceff1; font-family: 'Segoe UI', sans-serif; font-size: 0.78rem; overflow: hidden; margin: 0.5rem 0 0.9rem; }
+.mockup-titlebar { background: #37474f; color: #fff; padding: 0.35rem 0.7rem; font-size: 0.72rem; display: flex; justify-content: space-between; }
+.mockup-body { padding: 0.6rem 0.8rem; background: #fff; }
+.mockup-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; border-bottom: 1px dashed #e0e0e0; }
+.mockup-row:last-child { border-bottom: none; }
+.mockup-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.3rem; height: 1.3rem; border-radius: 4px; background: var(--primary-light); color: var(--primary); font-size: 0.75rem; flex-shrink: 0; }
+.mockup-btn { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 4px; background: var(--primary); color: #fff; font-size: 0.72rem; }
+.mockup-statusbar { background: #007acc; color: #fff; padding: 0.3rem 0.7rem; font-size: 0.72rem; display: flex; gap: 1rem; }
+details.cmd-ref { margin: 0.5rem 0 1rem; }
+details.cmd-ref summary { cursor: pointer; color: var(--text-secondary); font-size: 0.85rem; padding: 0.3rem 0; user-select: none; }
+details.cmd-ref summary:hover { color: var(--primary); }
+details.cmd-ref pre { margin-top: 0.4rem; }
 </style>
 </head>
 <body>
@@ -117,9 +136,11 @@ gitGraph
 <ul>
 <li>リポジトリをclone済みで、<code>multiBranch_test</code> ブランチが最新であること</li>
 <li><code>cmake</code> / <code>ninja</code>（または <code>ctest</code>）でビルド・テストが実行できる環境</li>
-<li>GitHub CLI（<code>gh</code>）またはブラウザでPR操作ができること</li>
+<li>VS Codeでリポジトリを開いていること（Git機能は標準搭載、追加インストール不要）</li>
+<li>GitHubアカウントでリポジトリにアクセスでき、ブラウザでPR操作ができること</li>
 <li>1人で演習する場合は「開発者A」「開発者B」の2役を演じる想定（実務では別々の担当者が同時に行う）</li>
 </ul>
+<div class="note"><strong>本教材の操作方針:</strong> 各手順は<strong>VS Codeのソース管理（Source Control）ビューとGitHub.comのWeb画面によるGUI操作</strong>を主として説明します。あわせて「対応するコマンド（参考）」として同じ操作を行うgitコマンドも折りたたみ表示で併記するので、GUIの裏で何が実行されているかも確認できます。</div>
 <div class="warn"><strong>重要:</strong> 開発者Bのブランチは、開発者Aのマージ<strong>前</strong>の <code>multiBranch_test</code> から分岐させてください。これにより「相手の変更がローカルに反映されていない」状態を意図的に再現します。</div>
 </section>
 
@@ -128,6 +149,29 @@ gitGraph
 
 <h3><span class="badge badge-a">開発者A</span> Step A-1: ブランチ作成と実装</h3>
 <div class="role-a">
+<div class="gui-box">
+<div class="gui-box-title">🖱 VS Code操作</div>
+<ol class="gui-steps">
+<li>ウィンドウ左下のステータスバーに表示されているブランチ名（例: <code>multiBranch_test</code>）をクリックする</li>
+<li>画面上部に候補一覧が表示されるので「<strong>+ 新しいブランチの作成...</strong>」を選び、ブランチ名 <code>dev-a/battery-hysteresis</code> を入力してEnter</li>
+<li>エディタで <code>battery_evaluate()</code> にヒステリシス処理を追加し、<code>temp_alarm_fsm_t</code> にフィールドを追加する</li>
+<li>左サイドバーの「ソース管理」アイコン（<kbd>Ctrl+Shift+G</kbd>）を開くと、変更したファイルが「変更」欄に一覧表示される</li>
+<li>コミットメッセージ欄に「feat: バッテリ評価にヒステリシスを追加」と入力し、<strong>チェックマーク（✓ コミット）</strong>ボタンを押す（自動的に全ファイルがステージ＆コミットされる）</li>
+<li>ステータスバーに「↑1」（未pushコミットが1件）が表示されるので、そこをクリック、または初回は「<strong>ブランチの発行 (Publish Branch)</strong>」ボタンを押す</li>
+</ol>
+</div>
+<div class="mockup">
+<div class="mockup-titlebar"><span>ソース管理</span><span>●●●</span></div>
+<div class="mockup-body">
+<div class="mockup-row"><span class="mockup-icon">✎</span> メッセージ入力欄: 「feat: バッテリ評価にヒステリシスを追加」</div>
+<div class="mockup-row"><span class="mockup-btn">✓ コミット</span><span class="mockup-btn" style="background:#546e7a;">... その他の操作</span></div>
+<div class="mockup-row"><span class="mockup-icon">M</span> src/dbc/battery_monitor.c</div>
+<div class="mockup-row"><span class="mockup-icon">M</span> src/app/temp_alarm_fsm.h</div>
+</div>
+<div class="mockup-statusbar"><span>⑂ dev-a/battery-hysteresis</span><span>↑1 ↓0</span><span>✓ 変更なし</span></div>
+</div>
+<details class="cmd-ref">
+<summary>対応するコマンド（参考）</summary>
 <pre>git checkout multiBranch_test
 git pull
 git checkout -b dev-a/battery-hysteresis
@@ -138,17 +182,52 @@ ctest --test-dir build --output-on-failure
 git add -A
 git commit -m "feat: バッテリ評価にヒステリシスを追加"
 git push -u origin dev-a/battery-hysteresis</pre>
+</details>
 </div>
 
 <h3><span class="badge badge-a">開発者A</span> Step A-2: PR作成・マージ</h3>
 <div class="role-a">
+<div class="gui-box">
+<div class="gui-box-title">🖱 GitHub.com操作</div>
+<ol class="gui-steps">
+<li>pushすると、GitHubのリポジトリページ上部に「<strong>dev-a/battery-hysteresis had recent pushes</strong>」という黄色いバナーが表示されるので「<strong>Compare & pull request</strong>」をクリック（表示されない場合は「Pull requests」タブ→「New pull request」）</li>
+<li>base（マージ先）が <code>multiBranch_test</code>、compare（マージ元）が <code>dev-a/battery-hysteresis</code> になっていることを確認</li>
+<li>タイトル・説明を入力し、「<strong>Create pull request</strong>」ボタンをクリック</li>
+<li>レビュー担当者が内容を確認し、問題なければ緑色の「<strong>Merge pull request</strong>」→「<strong>Confirm merge</strong>」をクリック</li>
+</ol>
+</div>
+<div class="mockup">
+<div class="mockup-titlebar"><span>github.com/…/pull/6</span><span>●●●</span></div>
+<div class="mockup-body">
+<div class="mockup-row"><span class="mockup-icon">⇄</span> base: multiBranch_test ← compare: dev-a/battery-hysteresis</div>
+<div class="mockup-row"><span class="mockup-btn">Create pull request</span></div>
+<div class="mockup-row"><span class="mockup-icon" style="background:#e8f5e9;color:#2e7d32;">✓</span> This branch has no conflicts with the base branch</div>
+<div class="mockup-row"><span class="mockup-btn" style="background:#2e7d32;">Merge pull request</span></div>
+</div>
+</div>
+<details class="cmd-ref">
+<summary>対応するコマンド（参考）</summary>
 <pre>gh pr create --base multiBranch_test --head dev-a/battery-hysteresis --title "feat: バッテリ評価にヒステリシスを追加（開発者A）"
 # レビュー後
 gh pr merge &lt;PR番号&gt; --merge</pre>
+</details>
 </div>
 
 <h3><span class="badge badge-b">開発者B</span> Step B-1: Aのマージ前に分岐して実装</h3>
 <div class="role-b">
+<div class="gui-box">
+<div class="gui-box-title">🖱 VS Code操作</div>
+<ol class="gui-steps">
+<li>ステータスバーのブランチ名が <code>multiBranch_test</code>（Aがまだマージされる前の状態）であることを確認する</li>
+<li>ステータスバーのブランチ名をクリック→「+ 新しいブランチの作成...」→ <code>dev-b/battery-overvoltage-latch</code> と入力してEnter</li>
+<li><code>battery_evaluate()</code> の同じ判定ロジック付近に別の機能（過電圧ラッチ）を追加し、<code>temp_alarm_fsm_t</code> の同じ挿入位置に別フィールドを追加する</li>
+<li>ソース管理ビューでコミットメッセージ「feat: 過電圧ラッチ機能を追加」を入力し、✓ コミット</li>
+<li>「ブランチの発行 (Publish Branch)」でpush</li>
+<li>GitHub.comで「Compare & pull request」からPRを作成（base: <code>multiBranch_test</code>）</li>
+</ol>
+</div>
+<details class="cmd-ref">
+<summary>対応するコマンド（参考）</summary>
 <pre>git checkout multiBranch_test   # Aがマージされる前の状態
 git checkout -b dev-b/battery-overvoltage-latch
 # battery_evaluate() の同じ判定ロジック付近に別の機能を追加（例: 過電圧ラッチ）
@@ -159,6 +238,7 @@ git add -A
 git commit -m "feat: 過電圧ラッチ機能を追加"
 git push -u origin dev-b/battery-overvoltage-latch
 gh pr create --base multiBranch_test --head dev-b/battery-overvoltage-latch --title "feat: 過電圧ラッチ機能を追加（開発者B）"</pre>
+</details>
 </div>
 
 <h3><span class="badge badge-b">開発者B</span> Step B-1.5: コンフリクトに気づくタイミング</h3>
@@ -166,8 +246,16 @@ gh pr create --base multiBranch_test --head dev-b/battery-overvoltage-latch --ti
 <p>開発者Bは、この時点では<strong>まだ何もおかしいことに気づいていません</strong>。ローカルのビルド・テストは問題なく通り、自分のPR (#7) もエラーなく作成できているためです。気づくきっかけは主に次の2つです。</p>
 <ol>
 <li><strong>GitHub PR画面での気づき:</strong> 開発者AのPR (#6) がマージされた直後、PR #7 のページを開くと GitHub が自動的に <code>This branch has conflicts that must be resolved</code>（このブランチにはマージ前に解決が必要なコンフリクトがあります）という警告を表示します。これは<strong>Bが何も操作していなくても</strong>、GitHub側がベースブランチ（<code>multiBranch_test</code>）とBのブランチを比較して検知するものです。</li>
-<li><strong>ローカルでの気づき:</strong> Bがローカルで最新化しようとして <code>git fetch origin</code> を実行し、<code>git status</code> や <code>git log origin/multiBranch_test..HEAD</code> を見ると、自分のブランチが「Aのマージコミットを含まない、分岐したままの状態」であることに気づきます。</li>
+<li><strong>VS Code上での気づき:</strong> ソース管理ビューの「...」メニュー→「プル」を実行しようとすると、VS Codeが「リモートに新しいコミットがあります」と表示し、さらに取り込もうとするとコンフリクトが検出されます。</li>
 </ol>
+<div class="mockup">
+<div class="mockup-titlebar"><span>github.com/…/pull/7</span><span>●●●</span></div>
+<div class="mockup-body">
+<div class="mockup-row"><span class="mockup-icon" style="background:#ffcdd2;color:#c62828;">✕</span> This branch has conflicts that must be resolved</div>
+<div class="mockup-row"><span class="mockup-icon">⇄</span> src/dbc/battery_monitor.c, src/app/temp_alarm_fsm.h</div>
+<div class="mockup-row"><span class="mockup-btn" style="background:#90a4ae;">Merge pull request（無効化）</span></div>
+</div>
+</div>
 <div class="warn"><strong>体験ポイント:</strong> ここで「自分は何も壊していないのに、なぜ急にPRが赤くなるのか？」を実際に確認させてください。原因は自分の変更ではなく、<strong>ベースブランチが自分の知らない間に進んでいた</strong>ことにあります。組み込み開発では「相手の変更に気づかないままローカルで作業を続ける」ことが最も典型的なコンフリクトの温床です。</div>
 <h4>merge か rebase か、この教材で rebase を選ぶ理由</h4>
 <table>
@@ -180,6 +268,33 @@ gh pr create --base multiBranch_test --head dev-b/battery-overvoltage-latch --ti
 
 <h3><span class="badge badge-b">開発者B</span> Step B-2: リベースしてコンフリクト解消を体験する</h3>
 <div class="role-b">
+<div class="gui-box">
+<div class="gui-box-title">🖱 VS Code操作</div>
+<ol class="gui-steps">
+<li><strong>コマンドパレット</strong>（<kbd>Ctrl+Shift+P</kbd>）を開き、「<strong>Git: Rebase Branch...</strong>」と入力して実行する</li>
+<li>リベース先として <code>origin/multiBranch_test</code> を選択する</li>
+<li>コンフリクトが発生すると、ソース管理ビューに「マージの変更」という区分で <code>battery_monitor.c</code> と <code>temp_alarm_fsm.h</code> が表示される</li>
+<li>ファイルをクリックしてエディタを開くと、コンフリクト箇所の上に<strong>「現在の変更を承諾」「入力側の変更を承諾」「両方の変更を承諾」</strong>というインラインのボタン（CodeLens）が表示される。今回は両方の変更を残したいので「<strong>両方の変更を承諾</strong>」を選ぶか、手動で編集してマーカーを削除する</li>
+<li>解消したファイルを「ステージ済みの変更」に追加（ファイル横の「+」をクリック）</li>
+<li>ソース管理ビュー上部の「<strong>...</strong>」メニュー→「<strong>続行 (Continue)</strong>」でリベースを完了する</li>
+<li>ビルド・テストを実行して問題ないことを確認</li>
+<li>ステータスバーの「↑n（強制プッシュが必要）」表示部分をクリックし、確認ダイアログで<strong>「OK」</strong>を選択して <code>--force-with-lease</code> 相当のプッシュを行う（VS Codeは既定でforce-with-lease相当の安全な強制プッシュを行う）</li>
+</ol>
+</div>
+<div class="mockup">
+<div class="mockup-titlebar"><span>src/dbc/battery_monitor.c — コンフリクト</span><span>●●●</span></div>
+<div class="mockup-body">
+<div class="mockup-row"><span class="mockup-btn" style="background:#2e7d32;">現在の変更を承諾</span><span class="mockup-btn" style="background:#1565c0;">入力側の変更を承諾</span><span class="mockup-btn" style="background:#6a1b9a;">両方の変更を承諾</span></div>
+<div class="mockup-row">&lt;&lt;&lt;&lt;&lt;&lt;&lt; 現在の変更 (multiBranch_test)</div>
+<div class="mockup-row">#define HYSTERESIS_MV 50U</div>
+<div class="mockup-row">=======</div>
+<div class="mockup-row">#define OVERVOLTAGE_LATCH_MARGIN_MV 100U</div>
+<div class="mockup-row">&gt;&gt;&gt;&gt;&gt;&gt;&gt; 入力側の変更</div>
+</div>
+</div>
+<p class="note">rebase実行直後、ソース管理ビューの「マージの変更」欄に<br><code>battery_monitor.c</code>・<code>temp_alarm_fsm.h</code><br>の2ファイルが表示される瞬間が「実際にコンフリクトに直面する体験」です。ファイル名の右に「C」（Conflict）マークが付きます。</p>
+<details class="cmd-ref">
+<summary>対応するコマンド（参考）</summary>
 <pre>git fetch origin
 git rebase origin/multiBranch_test
 # ここでコンフリクトが発生する（Step B-1.5で予告した通り）
@@ -190,12 +305,22 @@ git rebase --continue
 cmake --build build
 ctest --test-dir build --output-on-failure
 git push --force-with-lease -u origin dev-b/battery-overvoltage-latch</pre>
-<p>rebase実行直後、ターミナルに<br><code>CONFLICT (content): Merge conflict in src/dbc/battery_monitor.c</code><br><code>CONFLICT (content): Merge conflict in src/app/temp_alarm_fsm.h</code><br>と表示される瞬間が「実際にコンフリクトに直面する体験」です。<code>git status</code> で <code>both modified:</code> と表示されるファイルが、解消が必要なファイルです。</p>
+</details>
 </div>
 
 <h3><span class="badge badge-b">開発者B</span> Step B-3: PRマージ</h3>
 <div class="role-b">
+<div class="gui-box">
+<div class="gui-box-title">🖱 GitHub.com操作</div>
+<ol class="gui-steps">
+<li>PR #7 のページを再読み込みすると「This branch has conflicts」の警告が消え、緑色の「<strong>Merge pull request</strong>」ボタンが有効になっていることを確認する</li>
+<li>「Merge pull request」→「Confirm merge」をクリックする</li>
+</ol>
+</div>
+<details class="cmd-ref">
+<summary>対応するコマンド（参考）</summary>
 <pre>gh pr merge &lt;PR番号&gt; --merge</pre>
+</details>
 </div>
 </section>
 
@@ -330,6 +455,16 @@ git show origin/multiBranch_test:src/dbc/battery_monitor.c | grep -n "HYSTERESIS
 <tr><td><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> 〜 <code>=======</code></td><td>rebase先（今回は更新後の <code>multiBranch_test</code>、Aの変更）</td></tr>
 <tr><td><code>=======</code> 〜 <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code></td><td>取り込もうとしている自分のコミット（Bの変更）</td></tr>
 </table>
+<div class="gui-box">
+<div class="gui-box-title">🖱 VS Codeでの見え方の対応表</div>
+<p>VS Codeのエディタでは、上記のテキストマーカーの代わりに色付きのブロックとインラインボタン（CodeLens）で同じ情報が表示されます。</p>
+<table>
+<tr><th>テキストのマーカー</th><th>VS Code上の表示</th></tr>
+<tr><td><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> の側（rebase先＝Aの変更）</td><td>緑色の帯「現在の変更 (Current Change)」＋ボタン「現在の変更を承諾」</td></tr>
+<tr><td><code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> の側（取り込み側＝Bの変更）</td><td>青色の帯「入力側の変更 (Incoming Change)」＋ボタン「入力側の変更を承諾」</td></tr>
+<tr><td>両方採用したい場合</td><td>ボタン「両方の変更を承諾 (Accept Both Changes)」、または手動編集</td></tr>
+</table>
+</div>
 <div class="note">解消方針: 今回のケースは両者の変更が機能として排他ではないため、<strong>両方を残す</strong>形（マーカーを削除し、両方の定義・フィールドを併記）で解消します。実務では、どちらか一方が不要になるケースや、両者と相談して設計をすり合わせるケースもあります。</div>
 
 <h3>6.2 merge と rebase の違い</h3>
@@ -338,10 +473,13 @@ git show origin/multiBranch_test:src/dbc/battery_monitor.c | grep -n "HYSTERESIS
 <tr><td>履歴</td><td>マージコミットが残り分岐が見える</td><td>直線的な履歴になる（書き換え）</td></tr>
 <tr><td>コンフリクト解消回数</td><td>1回にまとまる</td><td>コミットごとに発生しうる</td></tr>
 <tr><td>共有ブランチへの影響</td><td>安全（履歴を書き換えない）</td><td>push済みの共有ブランチには要注意</td></tr>
+<tr><td>VS Codeでの実行方法</td><td>ソース管理ビュー「...」→「プル、リベースの代わりにマージ」、または「ブランチのマージ...」</td><td>コマンドパレット→「Git: Rebase Branch...」</td></tr>
 </table>
+<div class="warn">VS Codeのソース管理ビューには、通常の操作（コミット・プッシュ・プル・ブランチ作成）向けの分かりやすいボタンはありますが、<strong>rebaseだけは専用ボタンがなく、コマンドパレット（<kbd>Ctrl+Shift+P</kbd>）経由の操作になります</strong>。「リベースは少し上級者向けの操作」と位置づけられていることを受講者に伝えてください。</div>
 
 <h3>6.3 force-push の危険性</h3>
 <div class="danger"><strong>危険:</strong> <code>git push --force</code> はリモートの履歴を無条件に上書きし、他人が積んだコミットを消してしまう可能性があります。必ず <code>git push --force-with-lease</code> を使い、リモートが自分の想定と異なる場合は失敗させて事故を防ぎましょう。</div>
+<div class="note">VS Codeでステータスバーの「同期」表示から強制的にプッシュする場合、設定 <code>git.useForcePushWithLease</code>（既定で<code>true</code>）が有効であれば、GUI操作でも自動的に <code>--force-with-lease</code> 相当の安全な強制プッシュが行われます。念のため設定を確認しておくとよいでしょう。</div>
 </section>
 
 <section id="reflection">
