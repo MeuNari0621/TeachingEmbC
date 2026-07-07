@@ -44,6 +44,7 @@ typedef struct {
     int16_t last_temp_x10;
     uint8_t alarm_led_on;
     uint8_t sample_requested;
+    uint8_t hysteresis_active;
 } temp_alarm_fsm_t;
 
 void temp_alarm_fsm_init(temp_alarm_fsm_t *fsm);

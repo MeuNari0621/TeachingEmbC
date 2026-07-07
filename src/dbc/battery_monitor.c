@@ -9,6 +9,8 @@
 #define ADC_MAX 4095U
 /** 基準電圧 [mV] */
 #define VREF_MV 3300U
+/** LOW→NORMAL 復帰時のヒステリシス幅 [mV]（チャタリング防止） */
+#define HYSTERESIS_MV 50U
 
 void battery_monitor_init(battery_monitor_t *ctx,
                           uint16_t low_mv,
@@ -69,6 +71,10 @@ battery_state_t battery_evaluate(const battery_monitor_t *ctx,
     } else if (voltage_mv <= ctx->critical_threshold_mv) {
         result = BATTERY_STATE_CRITICAL;
     } else if (voltage_mv <= ctx->low_threshold_mv) {
+        result = BATTERY_STATE_LOW;
+    } else if ((ctx->last_state == BATTERY_STATE_LOW) &&
+               (voltage_mv <= (uint16_t)(ctx->low_threshold_mv + HYSTERESIS_MV))) {
+        /* ヒステリシス: LOW から NORMAL への復帰にはマージンを設け、チャタリングを防ぐ */
         result = BATTERY_STATE_LOW;
     } else {
         result = BATTERY_STATE_NORMAL;
