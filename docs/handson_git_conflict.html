@@ -72,6 +72,7 @@ footer { text-align: center; color: var(--text-secondary); font-size: 0.8rem; pa
 <li><a href="#overview">全体の流れ（ブランチ図）</a></li>
 <li><a href="#prep">事前準備</a></li>
 <li><a href="#steps">ハンズオン手順</a></li>
+<li><a href="#conflict-principle">コンフリクト発生の原理原則（よくある誤解）</a></li>
 <li><a href="#conflict">コンフリクトの読み方と対処</a></li>
 <li><a href="#reflection">振り返り</a></li>
 <li><a href="#trainer">トレーナー向け：再現・配布手順</a></li>
@@ -198,16 +199,45 @@ git push --force-with-lease -u origin dev-b/battery-overvoltage-latch</pre>
 </div>
 </section>
 
+<section id="conflict-principle">
+<h2>5. コンフリクト発生の原理原則（よくある誤解）</h2>
+
+<h3>誤解1: 「同じファイル・同じ関数を触ったらコンフリクトになる」</h3>
+<div class="warn"><strong>半分正解、半分誤解です。</strong> Gitの3-way マージは<strong>ファイル単位でも関数単位でもなく、行（正確には差分の"ハンク"と、その前後の文脈行）単位</strong>で判定します。同じ関数を触っていても、変更箇所が十分離れていれば自動マージされます。</div>
+<p>実際に今回のハンズオンでも、開発者A・Bはどちらも <code>battery_evaluate()</code> という<strong>同じ関数</strong>を変更しましたが、結果は次のように分かれました。</p>
+<table>
+<tr><th>変更箇所</th><th>Aの変更</th><th>Bの変更</th><th>結果</th></tr>
+<tr><td><code>#define</code> の追加位置</td><td><code>VREF_MV</code> の直後に1行追加</td><td><code>VREF_MV</code> の直後に1行追加（<strong>全く同じ行</strong>）</td><td>コンフリクト</td></tr>
+<tr><td><code>if-else</code> チェーン</td><td><code>over</code>判定と<code>critical</code>判定の間に分岐を追加</td><td><code>low</code>判定と<code>else</code>の間に分岐を追加（<strong>離れた場所</strong>）</td><td>自動マージ成功</td></tr>
+<tr><td>構造体フィールド</td><td>末尾に <code>hysteresis_active</code> を追加</td><td>末尾に <code>fault_latched</code> を追加（<strong>全く同じ挿入位置</strong>）</td><td>コンフリクト</td></tr>
+</table>
+<p class="note">つまり「同じ関数を触ったから危ない」のではなく、「<strong>共通の祖先(merge-base)から見て、両者が全く同じ行・隣接する行を書き換えたかどうか</strong>」がコンフリクトの本質的な判定基準です。</p>
+
+<h3>誤解2: 「相手の変更が取り込まれていない(out-of-date)状態のPRは、それだけでコンフリクトになる」</h3>
+<div class="danger"><strong>誤りです。</strong> 「ベースブランチが自分より進んでいる（out-of-date）」ことと、「コンフリクトが発生する」ことは<strong>別の現象</strong>です。GitHubのPR画面には主に次の2つの状態があり、混同されがちです。</div>
+<table>
+<tr><th>GitHubの表示</th><th>意味</th><th>マージ操作</th></tr>
+<tr><td><code>This branch is out-of-date with the base branch</code></td><td>ベースが進んだが、自分の変更と重なっていない</td><td>自動マージ可能（コンフリクトなし）。ボタン一つで更新できる</td></tr>
+<tr><td><code>This branch has conflicts that must be resolved</code></td><td>ベースの変更と自分の変更が同じ箇所に重なっている</td><td>手動解消が必須。rebaseまたはmergeで解消してからpush</td></tr>
+</table>
+<div class="mermaid">
+flowchart TD
+    A["ベースブランチが自分より進んでいる?"] -->|いいえ| B["out-of-date でも conflict でもない"]
+    A -->|はい| C{"自分の変更とベース側の変更が<br/>同じ行・隣接する文脈で重なっているか"}
+    C -->|いいえ| D["out-of-date のみ<br/>自動マージ可能・conflictなし"]
+    C -->|はい| E["コンフリクト発生<br/>手動解消が必須"]
+</div>
+<p>今回のB-1.5のケースで言えば、Bのブランチは「Aのマージ後のmultiBranch_test」に対して out-of-date でした。<strong>もしAとBが別々のファイル・別々の行を変更していたら、out-of-dateではあってもコンフリクトにはならず、そのままマージできていた</strong>はずです。今回は<code>#define</code>と構造体フィールドの挿入位置が偶然重なっていたため、out-of-date であることに加えて真のコンフリクトも発生しました。</p>
+<p class="note">教訓: 「PRが赤い(out-of-date)＝コンフリクトがある」ではありません。まず <code>git fetch</code> して <code>rebase</code>（または <code>merge</code>）を試み、実際にコンフリクトマーカーが出るかどうかで初めて「本当に重なっているか」が判明します。</p>
+
+<h3>誤解3: 「同じ行を両者が変更したら必ずコンフリクトになる」</h3>
+<p>これも厳密には誤解です。<strong>両者が全く同じ内容に変更した場合（結果が同一）は、Gitはコンフリクトとして扱わず自動的に1つにまとめます。</strong> コンフリクトになるのは「同じ行（またはその周辺）に対して、互いに<u>異なる</u>変更を加えた」場合だけです。</p>
+</section>
+
 <section id="conflict">
-<h2>5. コンフリクトの読み方と対処</h2>
+<h2>6. コンフリクトの読み方と対処</h2>
 
-<h3>5.0 コンフリクトは「偶然」ではなく「変更箇所の重なり」で起きる</h3>
-<p>今回、開発者Aと開発者Bは<strong>お互いの実装を見ずに</strong>同じ2ファイル（<code>battery_monitor.c</code> / <code>temp_alarm_fsm.h</code>）を変更しました。実務ではよくあることで、コンフリクトは「誰かのミス」ではなく「変更箇所がたまたま重なった」だけで起こります。重要なのは、それに<strong>いつ気づき、どう解消するか</strong>です（Step B-1.5参照）。</p>
-
-<h3>5.1 なぜ「一部は自動マージ」され「一部は競合」するのか</h3>
-<p>Gitの3-way マージは<strong>行単位の差分</strong>で判断します。AとBがそれぞれ別の <code>if-else</code> 分岐を「異なる挿入位置」に追加した場合は自動マージされますが、<strong>同じ行（例: 同じ場所への<code>#define</code>追加や、構造体の同じ末尾へのフィールド追加）</strong>を変更すると競合します。</p>
-
-<h3>5.2 コンフリクトマーカーの読み方</h3>
+<h3>6.1 コンフリクトマーカーの読み方</h3>
 <pre>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
 （リベース先＝multiBranch_test側、つまりA側の変更）
 =======
@@ -220,7 +250,7 @@ git push --force-with-lease -u origin dev-b/battery-overvoltage-latch</pre>
 </table>
 <div class="note">解消方針: 今回のケースは両者の変更が機能として排他ではないため、<strong>両方を残す</strong>形（マーカーを削除し、両方の定義・フィールドを併記）で解消します。実務では、どちらか一方が不要になるケースや、両者と相談して設計をすり合わせるケースもあります。</div>
 
-<h3>5.3 merge と rebase の違い</h3>
+<h3>6.2 merge と rebase の違い</h3>
 <table>
 <tr><th></th><th><code>git merge</code></th><th><code>git rebase</code></th></tr>
 <tr><td>履歴</td><td>マージコミットが残り分岐が見える</td><td>直線的な履歴になる（書き換え）</td></tr>
@@ -228,12 +258,12 @@ git push --force-with-lease -u origin dev-b/battery-overvoltage-latch</pre>
 <tr><td>共有ブランチへの影響</td><td>安全（履歴を書き換えない）</td><td>push済みの共有ブランチには要注意</td></tr>
 </table>
 
-<h3>5.4 force-push の危険性</h3>
+<h3>6.3 force-push の危険性</h3>
 <div class="danger"><strong>危険:</strong> <code>git push --force</code> はリモートの履歴を無条件に上書きし、他人が積んだコミットを消してしまう可能性があります。必ず <code>git push --force-with-lease</code> を使い、リモートが自分の想定と異なる場合は失敗させて事故を防ぎましょう。</div>
 </section>
 
 <section id="reflection">
-<h2>6. 振り返り</h2>
+<h2>7. 振り返り</h2>
 <ul>
 <li>同じ関数・同じファイルを複数人で触るときは、事前に役割分担やインターフェースを合わせておくとコンフリクトを減らせる</li>
 <li>PRは小さく・頻繁に出すほど、コンフリクトの解消コストが下がる</li>
@@ -243,8 +273,8 @@ git push --force-with-lease -u origin dev-b/battery-overvoltage-latch</pre>
 </section>
 
 <section id="trainer">
-<h2>7. トレーナー向け：再現・配布手順</h2>
-<h3>7.1 演習環境のリセット</h3>
+<h2>8. トレーナー向け：再現・配布手順</h2>
+<h3>8.1 演習環境のリセット</h3>
 <pre># ローカルの演習用ブランチを削除して起点に戻す
 git checkout multiBranch_test
 git branch -D dev-a/battery-hysteresis dev-b/battery-overvoltage-latch
@@ -254,13 +284,13 @@ git fetch origin
 git reset --hard origin/multiBranch_test</pre>
 <div class="warn">上記はローカル・リモートのブランチを削除する破壊的操作です。実行前に対象ブランチ名を必ず確認してください。</div>
 
-<h3>7.2 受講者ごとに独立した演習にする場合</h3>
+<h3>8.2 受講者ごとに独立した演習にする場合</h3>
 <ul>
 <li>各受講者（ペア）ごとにforkまたは専用ブランチ名（例: <code>dev-a/&lt;name&gt;</code>）を使い分ける</li>
 <li>同じ<code>multiBranch_test</code>を共有する場合は、演習前に必ずリセット手順を実施してから開始する</li>
 </ul>
 
-<h3>7.3 教材の拡張案（他の組み込み現場ケース）</h3>
+<h3>8.3 教材の拡張案（他の組み込み現場ケース）</h3>
 <ul>
 <li>AUTOSAR層（<code>Adc.c</code> / <code>Dio.c</code>）のレジスタ・API変更が競合するケース</li>
 <li>割り込みハンドラ（ISR）の追加・変更が同一ファイルで競合するケース</li>
