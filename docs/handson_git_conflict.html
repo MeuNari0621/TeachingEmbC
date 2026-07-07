@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self';">
+<meta name="referrer" content="no-referrer">
+<title>ハンズオン教材 — Gitブランチ運用とコンフリクト対応（組み込みC開発）</title>
+<style>
+:root {
+    --primary: #1565c0;
+    --primary-light: #e3f2fd;
+    --success: #2e7d32;
+    --success-light: #e8f5e9;
+    --warning: #ef6c00;
+    --warning-light: #fff3e0;
+    --danger: #c62828;
+    --danger-light: #ffcdd2;
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --text: #212121;
+    --text-secondary: #616161;
+    --border: #e0e0e0;
+    --radius: 8px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+header { background: linear-gradient(135deg, var(--primary), #0d47a1); color: #fff; padding: 2rem; text-align: center; }
+header h1 { font-size: 1.6rem; margin-bottom: 0.5rem; }
+header p { opacity: 0.9; font-size: 0.9rem; }
+main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+nav.toc { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+nav.toc h2 { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 0.5rem; }
+nav.toc ol { padding-left: 1.2rem; }
+nav.toc a { color: var(--primary); text-decoration: none; }
+nav.toc a:hover { text-decoration: underline; }
+section { background: var(--surface); padding: 1.75rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+h2 { color: var(--primary); border-left: 4px solid var(--primary); padding-left: 0.8rem; margin-bottom: 1rem; font-size: 1.3rem; }
+h3 { margin: 1.25rem 0 0.6rem; font-size: 1.05rem; }
+p, li { margin-bottom: 0.6rem; }
+ul, ol { padding-left: 1.5rem; }
+pre { background: #263238; color: #eeffff; padding: 1rem; border-radius: var(--radius); overflow-x: auto; margin: 0.75rem 0; font-size: 0.85rem; line-height: 1.5; }
+code { font-family: 'Fira Code', 'Consolas', monospace; }
+p code, li code, td code { background: #f5f5f5; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.9em; color: var(--danger); }
+table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
+th, td { padding: 0.6rem; border: 1px solid var(--border); vertical-align: top; }
+th { background: var(--primary-light); font-weight: 600; }
+.mermaid { margin: 1rem 0; text-align: center; }
+.note { background: var(--success-light); border-left: 4px solid var(--success); padding: 1rem; margin: 1rem 0; border-radius: 0 var(--radius) var(--radius) 0; }
+.warn { background: var(--warning-light); border-left: 4px solid var(--warning); padding: 1rem; margin: 1rem 0; border-radius: 0 var(--radius) var(--radius) 0; }
+.danger { background: var(--danger-light); border-left: 4px solid var(--danger); padding: 1rem; margin: 1rem 0; border-radius: 0 var(--radius) var(--radius) 0; }
+.role-a { border-left: 4px solid #1565c0; padding-left: 0.8rem; margin: 0.75rem 0; }
+.role-b { border-left: 4px solid #6a1b9a; padding-left: 0.8rem; margin: 0.75rem 0; }
+.badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+.badge-a { background: #e3f2fd; color: #1565c0; }
+.badge-b { background: #f3e5f5; color: #6a1b9a; }
+footer { text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 1rem; }
+</style>
+</head>
+<body>
+<header>
+<h1>ハンズオン教材：Gitブランチ運用とコンフリクト対応</h1>
+<p>組み込みC開発現場を想定した PR・リベース・コンフリクト解消の実践演習</p>
+</header>
+<main>
+
+<nav class="toc">
+<h2>目次</h2>
+<ol>
+<li><a href="#goals">学習目標</a></li>
+<li><a href="#overview">全体の流れ（ブランチ図）</a></li>
+<li><a href="#prep">事前準備</a></li>
+<li><a href="#steps">ハンズオン手順</a></li>
+<li><a href="#conflict">コンフリクトの読み方と対処</a></li>
+<li><a href="#reflection">振り返り</a></li>
+<li><a href="#trainer">トレーナー向け：再現・配布手順</a></li>
+</ol>
+</nav>
+
+<section id="goals">
+<h2>1. 学習目標</h2>
+<ul>
+<li>featureブランチの作成からPull Request（PR）作成・レビュー・マージまでの一連の流れを体験する</li>
+<li>複数人が並行して同じファイルを変更したときに<strong>コンフリクトがなぜ・どこで発生するか</strong>を理解する</li>
+<li><code>git rebase</code> によるコンフリクト解消と、<code>git merge</code> との違いを説明できるようになる</li>
+<li><code>git push --force-with-lease</code> の必要性と、単純な <code>--force</code> との危険性の違いを理解する</li>
+<li>組み込み開発現場で起きがちな「同一関数のロジック競合」「ヘッダ/構造体定義の競合」「相手の変更がローカルに反映されていない」ケースへの対処を体験する</li>
+</ul>
+</section>
+
+<section id="overview">
+<h2>2. 全体の流れ（ブランチ図）</h2>
+<p><code>multiBranch_test</code> を起点に、開発者A・開発者Bがそれぞれ独立したブランチで作業し、Aを先にマージ、Bはリベースでコンフリクトを解消してからマージする流れです。</p>
+<div class="mermaid">
+gitGraph
+   commit id: "multiBranch_test (起点)"
+   branch dev-a/battery-hysteresis
+   branch dev-b/battery-overvoltage-latch
+   checkout dev-a/battery-hysteresis
+   commit id: "Aの実装: ヒステリシス追加"
+   checkout multiBranch_test
+   merge dev-a/battery-hysteresis id: "PR(A)マージ"
+   checkout dev-b/battery-overvoltage-latch
+   commit id: "Bの実装: 過電圧ラッチ追加"
+   commit id: "リベースで競合解消 (force-with-lease push)"
+   checkout multiBranch_test
+   merge dev-b/battery-overvoltage-latch id: "PR(B)マージ"
+</div>
+<p class="note">実際の <code>git rebase</code> はコミット履歴を書き換える操作のため、上図の「リベースで競合解消」はBのブランチの履歴が<strong>Aのマージ後のmultiBranch_testの上に付け替えられた</strong>ことを表しています（マージコミットとは異なる仕組みです）。</p>
+</section>
+
+<section id="prep">
+<h2>3. 事前準備</h2>
+<h3>受講者向けチェックリスト</h3>
+<ul>
+<li>リポジトリをclone済みで、<code>multiBranch_test</code> ブランチが最新であること</li>
+<li><code>cmake</code> / <code>ninja</code>（または <code>ctest</code>）でビルド・テストが実行できる環境</li>
+<li>GitHub CLI（<code>gh</code>）またはブラウザでPR操作ができること</li>
+<li>1人で演習する場合は「開発者A」「開発者B」の2役を演じる想定（実務では別々の担当者が同時に行う）</li>
+</ul>
+<div class="warn"><strong>重要:</strong> 開発者Bのブランチは、開発者Aのマージ<strong>前</strong>の <code>multiBranch_test</code> から分岐させてください。これにより「相手の変更がローカルに反映されていない」状態を意図的に再現します。</div>
+</section>
+
+<section id="steps">
+<h2>4. ハンズオン手順</h2>
+
+<h3><span class="badge badge-a">開発者A</span> Step A-1: ブランチ作成と実装</h3>
+<div class="role-a">
+<pre>git checkout multiBranch_test
+git pull
+git checkout -b dev-a/battery-hysteresis
+# battery_evaluate() にロジックを追加（例: ヒステリシス処理）
+# temp_alarm_fsm_t 構造体にフィールドを追加
+cmake --build build
+ctest --test-dir build --output-on-failure
+git add -A
+git commit -m "feat: バッテリ評価にヒステリシスを追加"
+git push -u origin dev-a/battery-hysteresis</pre>
+</div>
+
+<h3><span class="badge badge-a">開発者A</span> Step A-2: PR作成・マージ</h3>
+<div class="role-a">
+<pre>gh pr create --base multiBranch_test --head dev-a/battery-hysteresis --title "feat: バッテリ評価にヒステリシスを追加（開発者A）"
+# レビュー後
+gh pr merge &lt;PR番号&gt; --merge</pre>
+</div>
+
+<h3><span class="badge badge-b">開発者B</span> Step B-1: Aのマージ前に分岐して実装</h3>
+<div class="role-b">
+<pre>git checkout multiBranch_test   # Aがマージされる前の状態
+git checkout -b dev-b/battery-overvoltage-latch
+# battery_evaluate() の同じ判定ロジック付近に別の機能を追加（例: 過電圧ラッチ）
+# temp_alarm_fsm_t 構造体の同じ挿入位置に別フィールドを追加
+cmake --build build
+ctest --test-dir build --output-on-failure
+git add -A
+git commit -m "feat: 過電圧ラッチ機能を追加"
+git push -u origin dev-b/battery-overvoltage-latch
+gh pr create --base multiBranch_test --head dev-b/battery-overvoltage-latch --title "feat: 過電圧ラッチ機能を追加（開発者B）"</pre>
+</div>
+
+<h3><span class="badge badge-b">開発者B</span> Step B-2: Aマージ後にリベースしてコンフリクト体験</h3>
+<div class="role-b">
+<pre>git fetch origin
+git rebase origin/multiBranch_test
+# ここでコンフリクトが発生する
+git status
+# コンフリクトマーカーを手動で解消（次章参照）
+git add &lt;解消したファイル&gt;
+git rebase --continue
+cmake --build build
+ctest --test-dir build --output-on-failure
+git push --force-with-lease -u origin dev-b/battery-overvoltage-latch</pre>
+</div>
+
+<h3><span class="badge badge-b">開発者B</span> Step B-3: PRマージ</h3>
+<div class="role-b">
+<pre>gh pr merge &lt;PR番号&gt; --merge</pre>
+</div>
+</section>
+
+<section id="conflict">
+<h2>5. コンフリクトの読み方と対処</h2>
+
+<h3>5.1 なぜ「一部は自動マージ」され「一部は競合」するのか</h3>
+<p>Gitの3-way マージは<strong>行単位の差分</strong>で判断します。AとBがそれぞれ別の <code>if-else</code> 分岐を「異なる挿入位置」に追加した場合は自動マージされますが、<strong>同じ行（例: 同じ場所への<code>#define</code>追加や、構造体の同じ末尾へのフィールド追加）</strong>を変更すると競合します。</p>
+
+<h3>5.2 コンフリクトマーカーの読み方</h3>
+<pre>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+（リベース先＝multiBranch_test側、つまりA側の変更）
+=======
+（リベース中のコミット＝B側の変更）
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; d4660db (feat: 過電圧ラッチ機能を追加)</pre>
+<table>
+<tr><th>記号</th><th>意味</th></tr>
+<tr><td><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> 〜 <code>=======</code></td><td>rebase先（今回は更新後の <code>multiBranch_test</code>、Aの変更）</td></tr>
+<tr><td><code>=======</code> 〜 <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code></td><td>取り込もうとしている自分のコミット（Bの変更）</td></tr>
+</table>
+<div class="note">解消方針: 今回のケースは両者の変更が機能として排他ではないため、<strong>両方を残す</strong>形（マーカーを削除し、両方の定義・フィールドを併記）で解消します。実務では、どちらか一方が不要になるケースや、両者と相談して設計をすり合わせるケースもあります。</div>
+
+<h3>5.3 merge と rebase の違い</h3>
+<table>
+<tr><th></th><th><code>git merge</code></th><th><code>git rebase</code></th></tr>
+<tr><td>履歴</td><td>マージコミットが残り分岐が見える</td><td>直線的な履歴になる（書き換え）</td></tr>
+<tr><td>コンフリクト解消回数</td><td>1回にまとまる</td><td>コミットごとに発生しうる</td></tr>
+<tr><td>共有ブランチへの影響</td><td>安全（履歴を書き換えない）</td><td>push済みの共有ブランチには要注意</td></tr>
+</table>
+
+<h3>5.4 force-push の危険性</h3>
+<div class="danger"><strong>危険:</strong> <code>git push --force</code> はリモートの履歴を無条件に上書きし、他人が積んだコミットを消してしまう可能性があります。必ず <code>git push --force-with-lease</code> を使い、リモートが自分の想定と異なる場合は失敗させて事故を防ぎましょう。</div>
+</section>
+
+<section id="reflection">
+<h2>6. 振り返り</h2>
+<ul>
+<li>同じ関数・同じファイルを複数人で触るときは、事前に役割分担やインターフェースを合わせておくとコンフリクトを減らせる</li>
+<li>PRは小さく・頻繁に出すほど、コンフリクトの解消コストが下がる</li>
+<li>「相手の変更がローカルに反映されていない」状態を避けるには、作業開始前・PR作成前に <code>git fetch</code> ＋ <code>git rebase origin/&lt;base&gt;</code>（または <code>pull --rebase</code>）を習慣化する</li>
+<li>コンフリクト解消後は必ずビルド・テストを実行し、機械的なマーカー除去だけでなく機能として正しいかを確認する</li>
+</ul>
+</section>
+
+<section id="trainer">
+<h2>7. トレーナー向け：再現・配布手順</h2>
+<h3>7.1 演習環境のリセット</h3>
+<pre># ローカルの演習用ブランチを削除して起点に戻す
+git checkout multiBranch_test
+git branch -D dev-a/battery-hysteresis dev-b/battery-overvoltage-latch
+git push origin --delete dev-a/battery-hysteresis dev-b/battery-overvoltage-latch
+# 起点ブランチを最新化
+git fetch origin
+git reset --hard origin/multiBranch_test</pre>
+<div class="warn">上記はローカル・リモートのブランチを削除する破壊的操作です。実行前に対象ブランチ名を必ず確認してください。</div>
+
+<h3>7.2 受講者ごとに独立した演習にする場合</h3>
+<ul>
+<li>各受講者（ペア）ごとにforkまたは専用ブランチ名（例: <code>dev-a/&lt;name&gt;</code>）を使い分ける</li>
+<li>同じ<code>multiBranch_test</code>を共有する場合は、演習前に必ずリセット手順を実施してから開始する</li>
+</ul>
+
+<h3>7.3 教材の拡張案（他の組み込み現場ケース）</h3>
+<ul>
+<li>AUTOSAR層（<code>Adc.c</code> / <code>Dio.c</code>）のレジスタ・API変更が競合するケース</li>
+<li>割り込みハンドラ（ISR）の追加・変更が同一ファイルで競合するケース</li>
+<li>ヘッダのマクロ定義変更（例: 閾値定数）とロジック変更が別ブランチで競合するケース</li>
+<li>リリースブランチへのバックポート時に発生するコンフリクト（cherry-pick演習への拡張）</li>
+</ul>
+</section>
+
+</main>
+<footer>組み込みC TDD教材 — Gitブランチ運用ハンズオン</footer>
+<script src="assets/vendor/mermaid.min.js"></script>
+<script>
+(function () {
+    'use strict';
+    if (window.mermaid) {
+        window.mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'strict'
+        });
+    }
+})();
+</script>
+</body>
+</html>
