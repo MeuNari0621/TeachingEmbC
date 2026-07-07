@@ -38,6 +38,7 @@ header p { opacity: 0.9; font-size: 0.95rem; }
 .tab-btn { width: 100%; padding: 0.95rem 0.9rem; border: none; border-left: 3px solid transparent; border-radius: calc(var(--radius) - 2px); background: var(--surface); cursor: pointer; font-size: 0.9rem; color: var(--text-secondary); transition: all 0.2s; text-align: left; }
 .tab-btn:hover { background: var(--primary-light); color: var(--primary); }
 .tab-btn.active { color: var(--primary); background: var(--primary-light); border-left-color: var(--primary); font-weight: 600; }
+a.tab-btn { display: block; text-decoration: none; box-sizing: border-box; }
 .tab-panels { flex: 1; min-width: 0; margin-left: calc(240px + 1.5rem); }
 .tab-content { display: none; background: var(--surface); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 2rem; }
 .tab-content.active { display: block; }
@@ -121,6 +122,8 @@ th { background: var(--primary-light); font-weight: 600; }
 <button type="button" class="tab-btn" data-tab="ch15">第15章<br>TDD実践</button>
 <button type="button" class="tab-btn" data-tab="ch16">第16章<br>実装</button>
 <button type="button" class="tab-btn" data-action="glossary" id="glossaryBtn">用語集<br>ポップアップ</button>
+<div class="tab-group-label">ハンズオン教材</div>
+<a class="tab-btn" href="handson_git_conflict.html">Gitブランチ運用<br>コンフリクト演習</a>
 </nav>
 <div class="tab-panels">
 
