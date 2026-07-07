@@ -232,6 +232,33 @@ flowchart TD
 
 <h3>誤解3: 「同じ行を両者が変更したら必ずコンフリクトになる」</h3>
 <p>これも厳密には誤解です。<strong>両者が全く同じ内容に変更した場合（結果が同一）は、Gitはコンフリクトとして扱わず自動的に1つにまとめます。</strong> コンフリクトになるのは「同じ行（またはその周辺）に対して、互いに<u>異なる</u>変更を加えた」場合だけです。</p>
+
+<h3>具体例集: コンフリクトになる例／ならない例（組み込みC開発の早見表）</h3>
+<p>本リポジトリのコードに沿って、複数人が別々に修正したときに<strong>コンフリクトになるパターン</strong>と<strong>ならないパターン</strong>を具体例で整理します。判定基準は常に「共通の祖先から見て、同じ行・隣接する文脈を、互いに異なる内容で書き換えたか」です。</p>
+
+<h4>❌ コンフリクトになる例</h4>
+<table>
+<tr><th>ケース</th><th>Aさんの変更</th><th>Bさんの変更</th><th>なぜ競合するか</th></tr>
+<tr><td>同じ判定式の閾値変更</td><td><code>battery_evaluate()</code>の<code>over_threshold_mv</code>比較を<code>&gt;</code>から<code>&gt;=</code>に変更</td><td>同じ行の比較演算子はそのままに、値へマージンを追加</td><td>全く同じ1行を、異なる内容で書き換えている</td></tr>
+<tr><td>構造体フィールドの同一挿入位置</td><td><code>temp_alarm_fsm_t</code>の末尾に<code>hysteresis_active</code>を追加</td><td>同じ末尾に<code>fault_latched</code>を追加</td><td>「構造体の最終フィールドの次の行」という同一の挿入位置</td></tr>
+<tr><td>同じマクロの再定義</td><td><code>Std_Types.h</code>の<code>NULL_PTR</code>マクロの実装を<code>((void*)0)</code>から独自マクロに変更</td><td>同じ<code>NULL_PTR</code>行にAUTOSAR標準の別定義を追加</td><td>同一マクロの同一行を別内容で編集</td></tr>
+<tr><td>switch/enumの同じ挿入位置</td><td><code>temp_alarm_state_t</code> enumの末尾に新状態<code>TEMP_ALARM_STATE_CALIBRATING</code>を追加</td><td>同じ末尾に別の新状態<code>TEMP_ALARM_STATE_SHUTDOWN</code>を追加</td><td>enumの最終行という同一挿入位置</td></tr>
+<tr><td>変更 vs 削除（modify/delete）</td><td><code>hal_adc.c</code>の関数<code>hal_adc_read()</code>の中身を修正</td><td>同じ関数<code>hal_adc_read()</code>ごと削除（リファクタリングで別関数に統合）</td><td>片方は「変更」、片方は「削除」で、そもそも突き合わせ不能</td></tr>
+<tr><td>同じコメント・Doxygenタグの編集</td><td>関数のDoxygenコメントの<code>@brief</code>行を日本語で修正</td><td>同じ<code>@brief</code>行を別の説明文に修正</td><td>コメント行も通常コードと同様に行単位で判定される</td></tr>
+</table>
+
+<h4>✅ コンフリクトにならない例</h4>
+<table>
+<tr><th>ケース</th><th>Aさんの変更</th><th>Bさんの変更</th><th>なぜ自動マージされるか</th></tr>
+<tr><td>別ファイルの変更</td><td><code>battery_monitor.c</code>を修正</td><td><code>Adc.c</code>を修正</td><td>そもそもファイルが異なり、比較対象の差分が重ならない</td></tr>
+<tr><td>同一ファイル内でも離れた関数</td><td><code>battery_monitor.c</code>の<code>battery_evaluate()</code>を修正</td><td>同じファイルの<code>battery_raw_to_mv()</code>を修正</td><td>変更行が離れていて差分のハンクが重ならない</td></tr>
+<tr><td>同じ関数でも離れた分岐（本教材の実例）</td><td><code>battery_evaluate()</code>の<code>low</code>/<code>else</code>間に分岐追加</td><td>同じ関数の<code>over</code>/<code>critical</code>間に分岐追加</td><td>行番号が離れており、前後文脈も重ならない</td></tr>
+<tr><td>構造体の異なるフィールドを個別に変更</td><td><code>battery_monitor_t</code>の<code>low_threshold_mv</code>の型コメントを修正</td><td>同じ構造体の<code>over_threshold_mv</code>の型コメントを修正</td><td>異なる行（フィールド）を個別に編集しており重ならない</td></tr>
+<tr><td>全く同じ修正を偶然両者が実施</td><td><code>dbc_assert.c</code>のログ出力に同じ1行を追加</td><td>同じ場所に一字一句同じ1行を追加</td><td>差分の内容が完全一致するため、Gitは1つの変更として扱う</td></tr>
+<tr><td>片方が新規ファイルを追加</td><td>新規に<code>src/dbc/current_monitor.c</code>を追加</td><td>既存の<code>battery_monitor.c</code>を修正</td><td>新規ファイルの追加は既存ファイルの差分と無関係</td></tr>
+</table>
+
+<div class="warn"><strong>注意（隣接コンフリクト）:</strong> 「離れていれば必ず安全」というわけではありません。Gitの3-wayマージはデフォルトで前後3行の文脈も考慮するため、変更箇所がごく近い（数行以内）場合は、文脈がずれてコンフリクトになることがあります。表内の「離れた分岐」も、閾値によっては近すぎるとコンフリクトになり得る点に注意してください。</div>
 </section>
 
 <section id="conflict">
