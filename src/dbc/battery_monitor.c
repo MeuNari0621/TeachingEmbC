@@ -1,9 +1,11 @@
 /**
  * @file battery_monitor.c
- * @brief バッテリ監視モジュール実装（契約による設計の具体例）
+ * @brief バッテリ監視モジュール実装
+ *
+ * 契約（事前条件・事後条件・不変条件）はヘッダの Doxygen コメントに文書化し、
+ * テストコードで検証する。本番コードには防御的プログラミングのみを残す。
  */
 #include "battery_monitor.h"
-#include "dbc_assert.h"
 
 /** ADC 最大値（12bit） */
 #define ADC_MAX 4095U
@@ -15,11 +17,7 @@ void battery_monitor_init(battery_monitor_t *ctx,
                           uint16_t critical_mv,
                           uint16_t over_mv)
 {
-    /* 事前条件 */
-    DBC_REQUIRE(ctx != 0);
-    DBC_REQUIRE(critical_mv < low_mv);
-    DBC_REQUIRE(low_mv < over_mv);
-
+    /* 防御的処理: NULLポインタ */
     if (ctx == 0) {
         return;
     }
@@ -29,24 +27,16 @@ void battery_monitor_init(battery_monitor_t *ctx,
     ctx->over_threshold_mv = over_mv;
     ctx->last_state = BATTERY_STATE_NORMAL;
     ctx->last_voltage_mv = 0;
-
-    /* 事後条件 */
-    DBC_ENSURE(ctx->last_state == BATTERY_STATE_NORMAL);
 }
 
 uint16_t battery_raw_to_mv(uint16_t raw_adc)
 {
-    /* 事前条件 */
-    DBC_REQUIRE(raw_adc <= ADC_MAX);
-
+    /* 防御的処理: 範囲外は最大電圧として返す */
     if (raw_adc > ADC_MAX) {
-        return VREF_MV; /* 防御的: 範囲外は最大電圧として返す */
+        return VREF_MV;
     }
 
     uint16_t voltage_mv = (uint16_t)((uint32_t)raw_adc * VREF_MV / ADC_MAX);
-
-    /* 事後条件 */
-    DBC_ENSURE(voltage_mv <= VREF_MV);
 
     return voltage_mv;
 }
@@ -54,10 +44,7 @@ uint16_t battery_raw_to_mv(uint16_t raw_adc)
 battery_state_t battery_evaluate(const battery_monitor_t *ctx,
                                  uint16_t voltage_mv)
 {
-    /* 事前条件 */
-    DBC_REQUIRE(ctx != 0);
-    DBC_REQUIRE(voltage_mv <= VREF_MV);
-
+    /* 防御的処理: NULLポインタ */
     if (ctx == 0) {
         return BATTERY_STATE_INVALID;
     }
@@ -74,18 +61,12 @@ battery_state_t battery_evaluate(const battery_monitor_t *ctx,
         result = BATTERY_STATE_NORMAL;
     }
 
-    /* 事後条件 */
-    DBC_ENSURE(result != BATTERY_STATE_INVALID);
-
     return result;
 }
 
 battery_state_t battery_monitor_update(battery_monitor_t *ctx, uint16_t raw_adc)
 {
-    /* 事前条件 */
-    DBC_REQUIRE(ctx != 0);
-    DBC_REQUIRE(raw_adc <= ADC_MAX);
-
+    /* 防御的処理: NULLポインタ */
     if (ctx == 0) {
         return BATTERY_STATE_INVALID;
     }
@@ -95,11 +76,6 @@ battery_state_t battery_monitor_update(battery_monitor_t *ctx, uint16_t raw_adc)
 
     ctx->last_voltage_mv = voltage_mv;
     ctx->last_state = state;
-
-    /* 事後条件 */
-    DBC_ENSURE(ctx->last_state == state);
-    /* 不変条件 */
-    DBC_INVARIANT(ctx->last_voltage_mv <= VREF_MV);
 
     return state;
 }

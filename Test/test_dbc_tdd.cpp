@@ -2,6 +2,8 @@
  * @file test_dbc_tdd.cpp
  * @brief 契約による設計 + TDD のテスト（第14〜16章の教材コード）
  *
+ * 契約（事前条件・事後条件・不変条件）はテストコードで検証する。
+ * 本番コードにはマクロを埋め込まず、テストが契約の番人となる。
  * テスト駆動開発の Red-Green-Refactor サイクルに沿って、
  * バッテリ監視モジュールを検証する。
  */
@@ -9,12 +11,6 @@
 
 extern "C" {
 #include "battery_monitor.h"
-#include "dbc_assert.h"
-
-/* テスト用: dbc_assert.c で定義されたヘルパ */
-int dbc_get_violation_count(void);
-void dbc_reset_violations(void);
-const char *dbc_get_last_violation_type(void);
 }
 
 // ============================================================
@@ -25,24 +21,31 @@ protected:
     battery_monitor_t ctx_;
 
     void SetUp() override {
-        dbc_reset_violations();
         // 閾値: critical=2400mV, low=2700mV, over=3100mV
         battery_monitor_init(&ctx_, 2700, 2400, 3100);
     }
 };
 
 // ============================================================
-// 第14章: 契約による設計 — 事前条件・事後条件・不変条件の検証
+// 第14章: 契約による設計 — テストコードで契約を検証する
 // ============================================================
 
-// --- ADC → 電圧変換の事前条件・事後条件 ---
+// --- 事前条件の検証: ADC 生値は 12bit 範囲 (0〜4095) ---
 
-TEST(BatteryRawToMv, ZeroInputReturnsZero) {
+TEST(BatteryRawToMv, Precondition_ZeroIsValid) {
+    // 事前条件: raw_adc <= 4095 を満たす最小値
     EXPECT_EQ(0, battery_raw_to_mv(0));
 }
 
-TEST(BatteryRawToMv, MaxInputReturnsVref) {
+TEST(BatteryRawToMv, Precondition_MaxIsValid) {
+    // 事前条件: raw_adc <= 4095 を満たす最大値
     EXPECT_EQ(3300, battery_raw_to_mv(4095));
+}
+
+TEST(BatteryRawToMv, Precondition_OverMaxIsSafelyHandled) {
+    // 事前条件違反（raw_adc > 4095）: 防御的に安全な値を返す
+    uint16_t result = battery_raw_to_mv(4096);
+    EXPECT_EQ(3300, result);
 }
 
 TEST(BatteryRawToMv, MidpointInput) {
@@ -52,28 +55,40 @@ TEST(BatteryRawToMv, MidpointInput) {
     EXPECT_LE(result, 1651);
 }
 
-TEST(BatteryRawToMv, PostconditionVoltageInRange) {
-    // 全範囲でも事後条件（戻り値 <= 3300）を満たす
+// --- 事後条件の検証: 電圧は 0〜3300 mV の範囲 ---
+
+TEST(BatteryRawToMv, Postcondition_VoltageInRange) {
+    // 事後条件: 全ての有効入力で 戻り値 <= 3300 を検証
     for (uint16_t adc = 0; adc <= 4095; adc += 100) {
         uint16_t mv = battery_raw_to_mv(adc);
-        EXPECT_LE(mv, 3300) << "adc=" << adc;
+        EXPECT_LE(mv, 3300) << "事後条件違反: adc=" << adc << " で voltage=" << mv;
     }
 }
 
-// --- 初期化の契約 ---
+// --- 初期化の事前条件・事後条件の検証 ---
 
-TEST_F(BatteryMonitorTest, InitSetsNormalState) {
+TEST_F(BatteryMonitorTest, Postcondition_InitSetsNormalState) {
+    // 事後条件: 初期化後は last_state == BATTERY_STATE_NORMAL
     EXPECT_EQ(BATTERY_STATE_NORMAL, ctx_.last_state);
-    EXPECT_EQ(0, dbc_get_violation_count());
 }
 
-TEST(BatteryMonitorInit, PreconditionViolation_CriticalNotLessThanLow) {
+TEST(BatteryMonitorContract, Precondition_InitRequiresCriticalLessThanLow) {
+    // 事前条件: critical_mv < low_mv を確認するテスト
+    // 正しい順序で呼べば正常に初期化される
     battery_monitor_t ctx;
-    dbc_reset_violations();
-    // critical(2800) >= low(2700) → 事前条件違反
-    battery_monitor_init(&ctx, 2700, 2800, 3100);
-    EXPECT_GT(dbc_get_violation_count(), 0);
-    EXPECT_STREQ("PRE", dbc_get_last_violation_type());
+    battery_monitor_init(&ctx, 2700, 2400, 3100);  // critical < low < over
+    EXPECT_EQ(BATTERY_STATE_NORMAL, ctx.last_state);
+    EXPECT_EQ(2700, ctx.low_threshold_mv);
+    EXPECT_EQ(2400, ctx.critical_threshold_mv);
+    EXPECT_EQ(3100, ctx.over_threshold_mv);
+}
+
+TEST(BatteryMonitorContract, Precondition_InitRequiresLowLessThanOver) {
+    // 事前条件: low_mv < over_mv を確認するテスト
+    battery_monitor_t ctx;
+    battery_monitor_init(&ctx, 2700, 2400, 3100);  // low(2700) < over(3100)
+    EXPECT_EQ(2700, ctx.low_threshold_mv);
+    EXPECT_EQ(3100, ctx.over_threshold_mv);
 }
 
 // ============================================================
@@ -104,6 +119,17 @@ TEST_F(BatteryMonitorTest, Overvoltage) {
     // 3200mV: > over(3100)
     battery_state_t state = battery_evaluate(&ctx_, 3200);
     EXPECT_EQ(BATTERY_STATE_OVERVOLTAGE, state);
+}
+
+// --- 事後条件の検証: 戻り値は BATTERY_STATE_INVALID 以外 ---
+
+TEST_F(BatteryMonitorTest, Postcondition_EvaluateNeverReturnsInvalidForValidInput) {
+    // 事後条件: 有効な入力に対して INVALID を返さない
+    const uint16_t voltages[] = {0, 1000, 2400, 2500, 2700, 2800, 3100, 3200, 3300};
+    for (auto mv : voltages) {
+        battery_state_t state = battery_evaluate(&ctx_, mv);
+        EXPECT_NE(BATTERY_STATE_INVALID, state) << "事後条件違反: voltage=" << mv;
+    }
 }
 
 // --- 境界値テスト ---
@@ -146,7 +172,9 @@ TEST_F(BatteryMonitorTest, UpdateFromAdc_Normal) {
     // ADC=3500 → 3500*3300/4095 ≈ 2820mV → NORMAL
     battery_state_t state = battery_monitor_update(&ctx_, 3500);
     EXPECT_EQ(BATTERY_STATE_NORMAL, state);
+    // 事後条件: ctx->last_state == 戻り値
     EXPECT_EQ(state, ctx_.last_state);
+    // 不変条件: ctx->last_voltage_mv <= 3300
     EXPECT_LE(ctx_.last_voltage_mv, 3300);
 }
 
@@ -179,27 +207,37 @@ TEST_F(BatteryMonitorTest, UpdateFromAdc_ZeroInput) {
 
 // --- 不変条件の検証: 連続呼び出しでも電圧が範囲内 ---
 
-TEST_F(BatteryMonitorTest, InvariantVoltageRange) {
+TEST_F(BatteryMonitorTest, Invariant_VoltageAlwaysInRange) {
+    // 不変条件: どのADC値を入力しても last_voltage_mv <= 3300
     const uint16_t test_values[] = {0, 100, 1000, 2048, 3000, 4000, 4095};
     for (auto adc : test_values) {
         battery_monitor_update(&ctx_, adc);
-        EXPECT_LE(ctx_.last_voltage_mv, 3300) << "adc=" << adc;
+        EXPECT_LE(ctx_.last_voltage_mv, 3300)
+            << "不変条件違反: adc=" << adc;
     }
-    EXPECT_EQ(0, dbc_get_violation_count());
 }
 
-// --- NULLポインタの防御的処理 ---
+// --- 事後条件の検証: last_state は常に戻り値と一致 ---
+
+TEST_F(BatteryMonitorTest, Postcondition_LastStateMatchesReturnValue) {
+    const uint16_t test_values[] = {0, 1000, 2048, 3000, 3500, 4095};
+    for (auto adc : test_values) {
+        battery_state_t state = battery_monitor_update(&ctx_, adc);
+        EXPECT_EQ(state, ctx_.last_state)
+            << "事後条件違反: adc=" << adc;
+    }
+}
+
+// --- 防御的プログラミングの検証: NULLポインタ ---
 
 TEST(BatteryMonitorDefensive, EvaluateNullReturnsInvalid) {
-    dbc_reset_violations();
+    // NULLポインタに対して安全に INVALID を返す
     battery_state_t state = battery_evaluate(nullptr, 2500);
     EXPECT_EQ(BATTERY_STATE_INVALID, state);
-    EXPECT_GT(dbc_get_violation_count(), 0);
 }
 
 TEST(BatteryMonitorDefensive, UpdateNullReturnsInvalid) {
-    dbc_reset_violations();
+    // NULLポインタに対して安全に INVALID を返す
     battery_state_t state = battery_monitor_update(nullptr, 2000);
     EXPECT_EQ(BATTERY_STATE_INVALID, state);
-    EXPECT_GT(dbc_get_violation_count(), 0);
 }

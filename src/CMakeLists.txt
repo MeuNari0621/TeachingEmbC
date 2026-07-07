@@ -38,9 +38,9 @@ target_include_directories(ObjectOrientedLibrary PUBLIC
 target_link_libraries(ObjectOrientedLibrary PUBLIC AppLibrary)
 
 # === 契約による設計（Design by Contract）サンプル ===
+# 契約はテストコードで検証する方針のため、本番コードに契約マクロは含めない
 set(DBC_SOURCES
     dbc/battery_monitor.c
-    dbc/dbc_assert.c
 )
 
 add_library(DbcLibrary STATIC ${DBC_SOURCES})

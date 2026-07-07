@@ -6,9 +6,9 @@
 
 ```mermaid
 graph LR
-    CONTRACT["📋 契約\n（事前条件・事後条件・不変条件）"] --> IMPL["⚙️ 実装"]
-    TEST["✅ テスト\n（Red-Green-Refactor）"] --> IMPL
-    IMPL --> VERIFY["🔍 検証\nテスト全パス + 契約違反ゼロ"]
+    CONTRACT["📋 契約\n（ヘッダの Doxygen コメント）"] --> IMPL["⚙️ 実装"]
+    TEST["✅ テスト\n（契約を検証するアサーション）"] --> IMPL
+    IMPL --> VERIFY["🔍 検証\nテスト全パス"]
     
     style CONTRACT fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style TEST fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
@@ -24,6 +24,7 @@ graph LR
 /* ✅ 純粋関数: テストが容易、並行動作も安全 */
 uint16_t battery_raw_to_mv(uint16_t raw_adc)
 {
+    if (raw_adc > ADC_MAX) { return VREF_MV; }
     return (uint16_t)((uint32_t)raw_adc * VREF_MV / ADC_MAX);
 }
 ```
@@ -34,6 +35,8 @@ uint16_t battery_raw_to_mv(uint16_t raw_adc)
 /* ✅ オーケストレータ: 純粋関数を組み合わせるだけ */
 battery_state_t battery_monitor_update(battery_monitor_t *ctx, uint16_t raw_adc)
 {
+    if (ctx == 0) { return BATTERY_STATE_INVALID; }
+
     uint16_t voltage_mv = battery_raw_to_mv(raw_adc);
     battery_state_t state = battery_evaluate(ctx, voltage_mv);
     ctx->last_voltage_mv = voltage_mv;
@@ -42,29 +45,42 @@ battery_state_t battery_monitor_update(battery_monitor_t *ctx, uint16_t raw_adc)
 }
 ```
 
-### 3) 契約アサーションを実装に埋め込む
+### 3) 防御的プログラミングで安全性を確保する
 
 ```c
-battery_state_t battery_monitor_update(battery_monitor_t *ctx, uint16_t raw_adc)
+battery_state_t battery_evaluate(const battery_monitor_t *ctx, uint16_t voltage_mv)
 {
-    /* 事前条件 */
-    DBC_REQUIRE(ctx != 0);
-    DBC_REQUIRE(raw_adc <= ADC_MAX);
-
-    /* 防御的処理（契約違反時の安全な振る舞い） */
+    /* 防御的処理: NULLポインタ */
     if (ctx == 0) { return BATTERY_STATE_INVALID; }
 
-    uint16_t voltage_mv = battery_raw_to_mv(raw_adc);
-    battery_state_t state = battery_evaluate(ctx, voltage_mv);
-    ctx->last_voltage_mv = voltage_mv;
-    ctx->last_state = state;
+    if (voltage_mv > ctx->over_threshold_mv) return BATTERY_STATE_OVERVOLTAGE;
+    if (voltage_mv <= ctx->critical_threshold_mv) return BATTERY_STATE_CRITICAL;
+    if (voltage_mv <= ctx->low_threshold_mv) return BATTERY_STATE_LOW;
+    return BATTERY_STATE_NORMAL;
+}
+```
 
-    /* 事後条件 */
-    DBC_ENSURE(ctx->last_state == state);
-    /* 不変条件 */
-    DBC_INVARIANT(ctx->last_voltage_mv <= VREF_MV);
+### 4) テストコードで契約を検証する
 
-    return state;
+```cpp
+// 事後条件: last_state は常に戻り値と一致
+TEST_F(BatteryMonitorTest, Postcondition_LastStateMatchesReturnValue) {
+    const uint16_t test_values[] = {0, 1000, 2048, 3000, 3500, 4095};
+    for (auto adc : test_values) {
+        battery_state_t state = battery_monitor_update(&ctx_, adc);
+        EXPECT_EQ(state, ctx_.last_state)
+            << "事後条件違反: adc=" << adc;
+    }
+}
+
+// 不変条件: last_voltage_mv <= 3300
+TEST_F(BatteryMonitorTest, Invariant_VoltageAlwaysInRange) {
+    const uint16_t test_values[] = {0, 100, 1000, 2048, 3000, 4000, 4095};
+    for (auto adc : test_values) {
+        battery_monitor_update(&ctx_, adc);
+        EXPECT_LE(ctx_.last_voltage_mv, 3300)
+            << "不変条件違反: adc=" << adc;
+    }
 }
 ```
 
@@ -75,8 +91,8 @@ flowchart TD
     subgraph GOOD["✅ 良い実装パターン"]
         G1["純粋関数でロジック分離"]
         G2["薄いオーケストレータ"]
-        G3["契約 + 防御的処理の併用"]
-        G4["テストで全パスを検証"]
+        G3["防御的プログラミング"]
+        G4["テストで契約を検証"]
     end
     subgraph BAD["❌ 避けるべきパターン"]
         B1["巨大な関数に全てを詰め込む"]
@@ -105,16 +121,17 @@ classDiagram
         +battery_monitor_init(ctx, low, crit, over) void
         +battery_monitor_update(ctx, raw_adc) battery_state_t
     }
-    class DbCAssertions {
-        +DBC_REQUIRE(expr)
-        +DBC_ENSURE(expr)
-        +DBC_INVARIANT(expr)
+    class TestCode {
+        +事前条件テスト
+        +事後条件テスト
+        +不変条件テスト
+        +境界値テスト
     }
     
     Orchestrator --> battery_monitor_t : updates
     Orchestrator --> PureFunctions : calls
-    Orchestrator --> DbCAssertions : uses
-    PureFunctions --> DbCAssertions : uses
+    TestCode --> Orchestrator : verifies contracts
+    TestCode --> PureFunctions : verifies contracts
 ```
 
 ## 16.5 テスト結果による実装の検証
@@ -137,22 +154,21 @@ ctest --test-dir build --output-on-failure -R "Battery|Dbc"
 | 契約検証 | 事前条件違反を検出できるか | `PreconditionViolation_CriticalNotLessThanLow` |
 | 不変条件 | 連続操作で範囲逸脱しないか | `InvariantVoltageRange` |
 
-## 16.6 リリースビルドでの契約除去
+## 16.6 テストと本番コードの分離
 
-```c
-/* CMakeLists.txt でリリースビルド時に NDEBUG を定義 */
-target_compile_definitions(DbcLibrary PRIVATE $<$<CONFIG:Release>:NDEBUG>)
-```
+本教材のアプローチでは、契約の検証ロジックが本番コードに一切含まれないため:
 
-- デバッグビルド: 契約アサーションが有効、違反時にハンドラ呼び出し
-- リリースビルド: 契約アサーションがゼロコストで除去される
-- 防御的処理 (`if` + `return`) はリリースでも残る
+- **本番コード**: 防御的プログラミング（`if` + 安全な代替動作）のみ
+- **テストコード**: 契約（事前条件・事後条件・不変条件）を検証するアサーション
+- **ヘッダファイル**: Doxygen コメントで契約を文書化
+
+この分離により、本番コードはシンプルで保守しやすく、テストコードが契約の番人として機能します。
 
 ## 16.7 まとめ
 
-> **結論**: 実装は「契約が定める what」と「テストが検証する how」に導かれて書く。純粋関数でロジックを分離し、薄いオーケストレータで組み合わせ、契約アサーションで開発時の安全網を張る。テストが通り、契約違反がゼロなら、実装は仕様を満たしている。
+> **結論**: 実装は「契約が定める what」と「テストが検証する how」に導かれて書く。純粋関数でロジックを分離し、薄いオーケストレータで組み合わせ、防御的プログラミングで安全性を確保する。契約はヘッダに文書化し、テストコードで検証する。テストが通れば、実装は仕様を満たしている。
 
 **サンプルコード:**
-- `src/dbc/battery_monitor.c` … 契約付き実装の完成形
-- `src/dbc/dbc_assert.h` … リリース時ゼロコストの契約マクロ
-- `Test/test_dbc_tdd.cpp` … 実装の全パスを検証するテスト
+- `src/dbc/battery_monitor.c` … 防御的プログラミングによる実装
+- `src/dbc/battery_monitor.h` … 契約を Doxygen で文書化したヘッダ
+- `Test/test_dbc_tdd.cpp` … テストコードで契約を検証
