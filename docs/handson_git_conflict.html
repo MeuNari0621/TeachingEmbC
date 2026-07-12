@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self';">
+<meta name="referrer" content="no-referrer">
+<title>ハンズオン教材 — Gitブランチ運用とコンフリクト対応（組み込みC開発）</title>
+<style>
+:root {
+    --primary: #1565c0;
+    --primary-light: #e3f2fd;
+    --success: #2e7d32;
+    --success-light: #e8f5e9;
+    --warning: #ef6c00;
+    --warning-light: #fff3e0;
+    --danger: #c62828;
+    --danger-light: #ffcdd2;
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --text: #212121;
+    --text-secondary: #616161;
+    --border: #e0e0e0;
+    --radius: 8px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+header { background: linear-gradient(135deg, var(--primary), #0d47a1); color: #fff; padding: 2rem; text-align: center; }
+header h1 { font-size: 1.6rem; margin-bottom: 0.5rem; }
+header p { opacity: 0.9; font-size: 0.9rem; }
+main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+nav.toc { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+nav.toc h2 { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 0.5rem; }
+nav.toc ol { padding-left: 1.2rem; }
+nav.toc a { color: var(--primary); text-decoration: none; }
+nav.toc a:hover { text-decoration: underline; }
+section { background: var(--surface); padding: 1.75rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+h2 { color: var(--primary); border-left: 4px solid var(--primary); padding-left: 0.8rem; margin-bottom: 1rem; font-size: 1.3rem; }
+h3 { margin: 1.25rem 0 0.6rem; font-size: 1.05rem; }
+p, li { margin-bottom: 0.6rem; }
+ul, ol { padding-left: 1.5rem; }
+pre { background: #263238; color: #eeffff; padding: 1rem; border-radius: var(--radius); overflow-x: auto; margin: 0.75rem 0; font-size: 0.85rem; line-height: 1.5; }
+code { font-family: 'Fira Code', 'Consolas', monospace; }
+p code, li code, td code { background: #f5f5f5; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.9em; color: var(--danger); }
+table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
+th, td { padding: 0.6rem; border: 1px solid var(--border); vertical-align: top; }
+th { background: var(--primary-light); font-weight: 600; }
+.mermaid { margin: 1rem 0; text-align: center; }
+.note { background: var(--success-light); border-left: 4px solid var(--success); padding: 1rem; margin: 1rem 0; border-radius: 0 var(--radius) var(--radius) 0; }
+.warn { background: var(--warning-light); border-left: 4px solid var(--warning); padding: 1rem; margin: 1rem 0; border-radius: 0 var(--radius) var(--radius) 0; }
+.danger { background: var(--danger-light); border-left: 4px solid var(--danger); padding: 1rem; margin: 1rem 0; border-radius: 0 var(--radius) var(--radius) 0; }
+.role-a { border-left: 4px solid #1565c0; padding-left: 0.8rem; margin: 0.75rem 0; }
+.role-b { border-left: 4px solid #6a1b9a; padding-left: 0.8rem; margin: 0.75rem 0; }
+.badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+.badge-a { background: #e3f2fd; color: #1565c0; }
+.badge-b { background: #f3e5f5; color: #6a1b9a; }
+footer { text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 1rem; }
+
+/* GUI操作ガイド */
+.gui-box { border: 1px solid var(--border); border-radius: var(--radius); background: #f7f9fb; padding: 1rem 1.1rem; margin: 0.75rem 0; }
+.gui-box-title { font-weight: 700; font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem; }
+.gui-steps { list-style: none; padding-left: 0; counter-reset: gui-step; }
+.gui-steps li { counter-increment: gui-step; position: relative; padding-left: 2.2rem; margin-bottom: 0.7rem; }
+.gui-steps li::before { content: counter(gui-step); position: absolute; left: 0; top: 0; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--primary); color: #fff; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.mockup { border: 1px solid #cfd8dc; border-radius: 6px; background: #eceff1; font-family: 'Segoe UI', sans-serif; font-size: 0.78rem; overflow: hidden; margin: 0.5rem 0 0.9rem; }
+.mockup-titlebar { background: #37474f; color: #fff; padding: 0.35rem 0.7rem; font-size: 0.72rem; display: flex; justify-content: space-between; }
+.mockup-body { padding: 0.6rem 0.8rem; background: #fff; }
+.mockup-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; border-bottom: 1px dashed #e0e0e0; }
+.mockup-row:last-child { border-bottom: none; }
+.mockup-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.3rem; height: 1.3rem; border-radius: 4px; background: var(--primary-light); color: var(--primary); font-size: 0.75rem; flex-shrink: 0; }
+.mockup-btn { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 4px; background: var(--primary); color: #fff; font-size: 0.72rem; }
+.mockup-statusbar { background: #007acc; color: #fff; padding: 0.3rem 0.7rem; font-size: 0.72rem; display: flex; gap: 1rem; }
+details.cmd-ref { margin: 0.5rem 0 1rem; }
+details.cmd-ref summary { cursor: pointer; color: var(--text-secondary); font-size: 0.85rem; padding: 0.3rem 0; user-select: none; }
+details.cmd-ref summary:hover { color: var(--primary); }
+details.cmd-ref pre { margin-top: 0.4rem; }
+</style>
+</head>
+<body>
+<header>
+<h1>ハンズオン教材：Gitブランチ運用とコンフリクト対応</h1>
+<p>組み込みC開発現場を想定した PR・リベース・コンフリクト解消の実践演習</p>
+</header>
+<main>
+
+<nav class="toc">
+<h2>目次</h2>
+<ol>
+<li><a href="#goals">学習目標</a></li>
+<li><a href="#overview">全体の流れ（ブランチ図）</a></li>
+<li><a href="#prep">事前準備</a></li>
+<li><a href="#steps">ハンズオン手順</a></li>
+<li><a href="#conflict-principle">コンフリクト発生の原理原則（よくある誤解）</a></li>
+<li><a href="#conflict">コンフリクトの読み方と対処</a></li>
+<li><a href="#reflection">振り返り</a></li>
+<li><a href="#trainer">トレーナー向け：再現・配布手順</a></li>
+</ol>
+</nav>
+
+<section id="goals">
+<h2>1. 学習目標</h2>
+<ul>
+<li>featureブランチの作成からPull Request（PR）作成・レビュー・マージまでの一連の流れを体験する</li>
+<li>複数人が並行して同じファイルを変更したときに<strong>コンフリクトがなぜ・どこで発生するか</strong>を理解する</li>
+<li><code>git rebase</code> によるコンフリクト解消と、<code>git merge</code> との違いを説明できるようになる</li>
+<li><code>git push --force-with-lease</code> の必要性と、単純な <code>--force</code> との危険性の違いを理解する</li>
+<li>組み込み開発現場で起きがちな「同一関数のロジック競合」「ヘッダ/構造体定義の競合」「相手の変更がローカルに反映されていない」ケースへの対処を体験する</li>
+</ul>
+</section>
+
+<section id="overview">
+<h2>2. 全体の流れ（ブランチ図）</h2>
+<p><code>multiBranch_test</code> を起点に、開発者A・開発者Bがそれぞれ独立したブランチで作業し、Aを先にマージ、Bはリベースでコンフリクトを解消してからマージする流れです。</p>
+<div class="mermaid">
+gitGraph
+   commit id: "multiBranch_test-start"
+   branch "dev-a-battery-hysteresis"
+   branch "dev-b-battery-overvoltage-latch"
+   checkout "dev-a-battery-hysteresis"
+   commit id: "A-impl-hysteresis"
+   checkout main
+   merge "dev-a-battery-hysteresis" id: "PR-A-merged"
+   checkout "dev-b-battery-overvoltage-latch"
+   commit id: "B-impl-overvoltage-latch"
+   commit id: "B-rebase-resolve-conflict"
+   checkout main
+   merge "dev-b-battery-overvoltage-latch" id: "PR-B-merged"
+</div>
+<p class="note">実際のブランチ名は <code>dev-a/battery-hysteresis</code> / <code>dev-b/battery-overvoltage-latch</code> ですが、Mermaidのgraph表示の都合上ハイフン区切りで表記しています。<code>git rebase</code> はコミット履歴を書き換える操作のため、上図の「B-rebase-resolve-conflict」はBのブランチの履歴が<strong>Aのマージ後のmultiBranch_testの上に付け替えられた</strong>ことを表しています（マージコミットとは異なる仕組みです）。</p>
+</section>
+
+<section id="prep">
+<h2>3. 事前準備</h2>
+<h3>受講者向けチェックリスト</h3>
+<ul>
+<li>リポジトリをclone済みで、<code>multiBranch_test</code> ブランチが最新であること</li>
+<li><code>cmake</code> / <code>ninja</code>（または <code>ctest</code>）でビルド・テストが実行できる環境</li>
+<li>VS Codeでリポジトリを開いていること（Git機能は標準搭載、追加インストール不要）</li>
+<li>（任意・推奨）拡張機能「<strong>GitLens</strong>」をインストールしておくと、コミットグラフの右クリックメニューから fetch・rebase・merge などをより視覚的に操作できる</li>
+<li>GitHubアカウントでリポジトリにアクセスでき、ブラウザでPR操作ができること</li>
+<li>1人で演習する場合は「開発者A」「開発者B」の2役を演じる想定（実務では別々の担当者が同時に行う）</li>
+</ul>
+<div class="note"><strong>本教材の操作方針:</strong> 各手順は<strong>VS Codeのソース管理（Source Control）ビューとGitHub.comのWeb画面によるGUI操作</strong>を主として説明します。あわせて「対応するコマンド（参考）」として同じ操作を行うgitコマンドも折りたたみ表示で併記するので、GUIの裏で何が実行されているかも確認できます。</div>
+<div class="warn"><strong>重要:</strong> 開発者Bのブランチは、開発者Aのマージ<strong>前</strong>の <code>multiBranch_test</code> から分岐させてください。これにより「相手の変更がローカルに反映されていない」状態を意図的に再現します。</div>
+</section>
+
+<section id="steps">
+<h2>4. ハンズオン手順</h2>
+
+<h3><span class="badge badge-a">開発者A</span> Step A-1: ブランチ作成と実装</h3>
+<div class="role-a">
+<div class="gui-box">
+<div class="gui-box-title">🖱 VS Code操作</div>
+<ol class="gui-steps">
+<li>ウィンドウ左下のステータスバーに表示されているブランチ名（例: <code>multiBranch_test</code>）をクリックする</li>
+<li>画面上部に候補一覧が表示されるので「<strong>+ 新しいブランチの作成...</strong>」を選び、ブランチ名 <code>dev-a/battery-hysteresis</code> を入力してEnter</li>
+<li>エディタで <code>battery_evaluate()</code> にヒステリシス処理を追加し、<code>temp_alarm_fsm_t</code> にフィールドを追加する</li>
+<li>左サイドバーの「ソース管理」アイコン（<kbd>Ctrl+Shift+G</kbd>）を開くと、変更したファイルが「変更」欄に一覧表示される</li>
+<li>コミットメッセージ欄に「feat: バッテリ評価にヒステリシスを追加」と入力し、<strong>チェックマーク（✓ コミット）</strong>ボタンを押す（自動的に全ファイルがステージ＆コミットされる）</li>
+<li>ステータスバーに「↑1」（未pushコミットが1件）が表示されるので、そこをクリック、または初回は「<strong>ブランチの発行 (Publish Branch)</strong>」ボタンを押す</li>
+</ol>
+</div>
+<div class="mockup">
+<div class="mockup-titlebar"><span>ソース管理</span><span>●●●</span></div>
+<div class="mockup-body">
+<div class="mockup-row"><span class="mockup-icon">✎</span> メッセージ入力欄: 「feat: バッテリ評価にヒステリシスを追加」</div>
+<div class="mockup-row"><span class="mockup-btn">✓ コミット</span><span class="mockup-btn" style="background:#546e7a;">... その他の操作</span></div>
+<div class="mockup-row"><span class="mockup-icon">M</span> src/dbc/battery_monitor.c</div>
+<div class="mockup-row"><span class="mockup-icon">M</span> src/app/temp_alarm_fsm.h</div>
+</div>
+<div class="mockup-statusbar"><span>⑂ dev-a/battery-hysteresis</span><span>↑1 ↓0</span><span>✓ 変更なし</span></div>
+</div>
+<details class="cmd-ref">
+<summary>対応するコマンド（参考）</summary>
+<pre>git checkout multiBranch_test
+git pull
+git checkout -b dev-a/battery-hysteresis
+# battery_evaluate() にロジックを追加（例: ヒステリシス処理）
+# temp_alarm_fsm_t 構造体にフィールドを追加
+cmake --build build
+ctest --test-dir build --output-on-failure
+git add -A
+git commit -m "feat: バッテリ評価にヒステリシスを追加"
+git push -u origin dev-a/battery-hysteresis</pre>
+</details>
+</div>
+
+<h3><span class="badge badge-a">開発者A</span> Step A-2: PR作成・マージ</h3>
+<div class="role-a">
+<div class="gui-box">
+<div class="gui-box-title">🖱 GitHub.com操作</div>
+<ol class="gui-steps">
+<li>pushすると、GitHubのリポジトリページ上部に「<strong>dev-a/battery-hysteresis had recent pushes</strong>」という黄色いバナーが表示されるので「<strong>Compare & pull request</strong>」をクリック（表示されない場合は「Pull requests」タブ→「New pull request」）</li>
+<li>base（マージ先）が <code>multiBranch_test</code>、compare（マージ元）が <code>dev-a/battery-hysteresis</code> になっていることを確認</li>
+<li>タイトル・説明を入力し、「<strong>Create pull request</strong>」ボタンをクリック</li>
+<li>レビュー担当者が内容を確認し、問題なければ緑色の「<strong>Merge pull request</strong>」→「<strong>Confirm merge</strong>」をクリック</li>
+</ol>
+</div>
+<div class="mockup">
+<div class="mockup-titlebar"><span>github.com/…/pull/6</span><span>●●●</span></div>
+<div class="mockup-body">
+<div class="mockup-row"><span class="mockup-icon">⇄</span> base: multiBranch_test ← compare: dev-a/battery-hysteresis</div>
+<div class="mockup-row"><span class="mockup-btn">Create pull request</span></div>
+<div class="mockup-row"><span class="mockup-icon" style="background:#e8f5e9;color:#2e7d32;">✓</span> This branch has no conflicts with the base branch</div>
+<div class="mockup-row"><span class="mockup-btn" style="background:#2e7d32;">Merge pull request</span></div>
+</div>
+</div>
+<details class="cmd-ref">
+<summary>対応するコマンド（参考）</summary>
+<pre>gh pr create --base multiBranch_test --head dev-a/battery-hysteresis --title "feat: バッテリ評価にヒステリシスを追加（開発者A）"
+# レビュー後
+gh pr merge &lt;PR番号&gt; --merge</pre>
+</details>
+</div>
+
+<h3><span class="badge badge-b">開発者B</span> Step B-1: Aのマージ前に分岐して実装</h3>
+<div class="role-b">
+<div class="gui-box">
+<div class="gui-box-title">🖱 VS Code操作</div>
+<ol class="gui-steps">
+<li>ステータスバーのブランチ名が <code>multiBranch_test</code>（Aがまだマージされる前の状態）であることを確認する</li>
+<li>ステータスバーのブランチ名をクリック→「+ 新しいブランチの作成...」→ <code>dev-b/battery-overvoltage-latch</code> と入力してEnter</li>
+<li><code>battery_evaluate()</code> の同じ判定ロジック付近に別の機能（過電圧ラッチ）を追加し、<code>temp_alarm_fsm_t</code> の同じ挿入位置に別フィールドを追加する</li>
+<li>ソース管理ビューでコミットメッセージ「feat: 過電圧ラッチ機能を追加」を入力し、✓ コミット</li>
+<li>「ブランチの発行 (Publish Branch)」でpush</li>
+<li>GitHub.comで「Compare & pull request」からPRを作成（base: <code>multiBranch_test</code>）</li>
+</ol>
+</div>
+<details class="cmd-ref">
+<summary>対応するコマンド（参考）</summary>
+<pre>git checkout multiBranch_test   # Aがマージされる前の状態
+git checkout -b dev-b/battery-overvoltage-latch
+# battery_evaluate() の同じ判定ロジック付近に別の機能を追加（例: 過電圧ラッチ）
+# temp_alarm_fsm_t 構造体の同じ挿入位置に別フィールドを追加
+cmake --build build
+ctest --test-dir build --output-on-failure
+git add -A
+git commit -m "feat: 過電圧ラッチ機能を追加"
+git push -u origin dev-b/battery-overvoltage-latch
+gh pr create --base multiBranch_test --head dev-b/battery-overvoltage-latch --title "feat: 過電圧ラッチ機能を追加（開発者B）"</pre>
+</details>
+</div>
+
+<h3><span class="badge badge-b">開発者B</span> Step B-1.5: コンフリクトに気づくタイミング</h3>
+<div class="role-b">
+<p>開発者Bは、この時点では<strong>まだ何もおかしいことに気づいていません</strong>。ローカルのビルド・テストは問題なく通り、自分のPR (#7) もエラーなく作成できているためです。気づくきっかけは主に次の2つです。</p>
+<ol>
+<li><strong>GitHub PR画面での気づき:</strong> 開発者AのPR (#6) がマージされた直後、PR #7 のページを開くと GitHub が自動的に <code>This branch has conflicts that must be resolved</code>（このブランチにはマージ前に解決が必要なコンフリクトがあります）という警告を表示します。これは<strong>Bが何も操作していなくても</strong>、GitHub側がベースブランチ（<code>multiBranch_test</code>）とBのブランチを比較して検知するものです。</li>
+<li><strong>VS Code上での気づき:</strong> ソース管理ビューの「...」メニュー→「プル」を実行しようとすると、VS Codeが「リモートに新しいコミットがあります」と表示し、さらに取り込もうとするとコンフリクトが検出されます。</li>
+</ol>
+<div class="mockup">
+<div class="mockup-titlebar"><span>github.com/…/pull/7</span><span>●●●</span></div>
+<div class="mockup-body">
+<div class="mockup-row"><span class="mockup-icon" style="background:#ffcdd2;color:#c62828;">✕</span> This branch has conflicts that must be resolved</div>
+<div class="mockup-row"><span class="mockup-icon">⇄</span> src/dbc/battery_monitor.c, src/app/temp_alarm_fsm.h</div>
+<div class="mockup-row"><span class="mockup-btn" style="background:#90a4ae;">Merge pull request（無効化）</span></div>
+</div>
+</div>
+<div class="warn"><strong>体験ポイント:</strong> ここで「自分は何も壊していないのに、なぜ急にPRが赤くなるのか？」を実際に確認させてください。原因は自分の変更ではなく、<strong>ベースブランチが自分の知らない間に進んでいた</strong>ことにあります。組み込み開発では「相手の変更に気づかないままローカルで作業を続ける」ことが最も典型的なコンフリクトの温床です。</div>
+<h4>merge か rebase か、この教材で rebase を選ぶ理由</h4>
+<table>
+<tr><th>選択肢</th><th>内容</th><th>この教材での採用</th></tr>
+<tr><td><code>git merge origin/multiBranch_test</code></td><td>Bのブランチに、multiBranch_testを取り込むマージコミットを作る。履歴が分岐したまま残る。</td><td>他の人ともBブランチを共有している場合はこちらが安全（履歴を書き換えないため）</td></tr>
+<tr><td><code>git rebase origin/multiBranch_test</code></td><td>Bのコミットを、最新のmultiBranch_testの上に「付け替える」。履歴が一本の直線になり、PRの差分もBの変更だけに見える。</td><td>採用。Bのブランチは自分専用（他の人がpullしていない）ため、履歴を書き換えても安全。PRのdiffが読みやすくなるメリットを優先</td></tr>
+</table>
+<div class="note">判断基準: <strong>そのブランチをまだ自分しか使っていないか</strong>がポイントです。誰かが既にpullして作業している共有ブランチをrebaseすると、相手の履歴と食い違い、二次的なコンフリクトを引き起こします。featureブランチのような「個人の作業ブランチ」はrebase、共有ブランチはmergeが基本方針です。</div>
+</div>
+
+<h3><span class="badge badge-b">開発者B</span> Step B-2: リベースしてコンフリクト解消を体験する</h3>
+<div class="role-b">
+<div class="gui-box">
+<div class="gui-box-title">🖱 VS Code標準機能での操作</div>
+<ol class="gui-steps">
+<li><strong>コマンドパレット</strong>（<kbd>Ctrl+Shift+P</kbd>）を開き、「<strong>Git: Rebase Branch...</strong>」と入力して実行する</li>
+<li>リベース先として <code>origin/multiBranch_test</code> を選択する</li>
+<li>コンフリクトが発生すると、ソース管理ビューに「マージの変更」という区分で <code>battery_monitor.c</code> と <code>temp_alarm_fsm.h</code> が表示される</li>
+<li>ファイルをクリックしてエディタを開くと、コンフリクト箇所の上に<strong>「現在の変更を承諾」「入力側の変更を承諾」「両方の変更を承諾」</strong>というインラインのボタン（CodeLens）が表示される。今回は両方の変更を残したいので「<strong>両方の変更を承諾</strong>」を選ぶか、手動で編集してマーカーを削除する</li>
+<li>解消したファイルを「ステージ済みの変更」に追加（ファイル横の「+」をクリック）</li>
+<li>ソース管理ビュー上部の「<strong>...</strong>」メニュー→「<strong>続行 (Continue)</strong>」でリベースを完了する</li>
+<li>ビルド・テストを実行して問題ないことを確認</li>
+<li>ステータスバーの「↑n（強制プッシュが必要）」表示部分をクリックし、確認ダイアログで<strong>「OK」</strong>を選択して <code>--force-with-lease</code> 相当のプッシュを行う（VS Codeは既定でforce-with-lease相当の安全な強制プッシュを行う）</li>
+</ol>
+</div>
+<div class="gui-box">
+<div class="gui-box-title">🖱 GitLens拡張機能での操作（右クリック導線・代替手段）</div>
+<p>GitLensを導入している場合は、コマンドパレットを使わずマウス操作だけで同じことができます。</p>
+<ol class="gui-steps">
+<li>左サイドバーの「GitLens」アイコンから「<strong>コミットグラフ (Commit Graph)</strong>」を開く（または <kbd>Ctrl+Shift+G</kbd> のソース管理ビュー内タブから開く）</li>
+<li>グラフ上に表示されている <code>origin/multiBranch_test</code>（リモート追跡ブランチ）を右クリックし、コンテキストメニューから「<strong>Fetch</strong>」を選び最新化する</li>
+<li>現在のブランチ（<code>dev-b/battery-overvoltage-latch</code>）がチェックアウトされた状態で、グラフ上の <code>origin/multiBranch_test</code> の位置にあるコミットを右クリックし、「<strong>Rebase Current Branch onto Commit...</strong>」（または「Rebase Current Branch onto Branch...」）を選ぶ</li>
+<li>以降のコンフリクト解消・続行の操作は上記のVS Code標準機能と同じ（ソース管理ビューでCodeLensを使って解消→「続行」）</li>
+<li>プッシュも同様にグラフ上の自分のブランチを右クリック→「<strong>Push (Force)</strong>」で行える</li>
+</ol>
+<div class="note">GitLensの利点は、<strong>ブランチの分岐・統合の様子をグラフで見ながら</strong>右クリックだけで操作できる点です。「今どのコミットに対してrebaseしようとしているか」が視覚的に分かるため、コマンドパレットに慣れていない受講者にはこちらを推奨してもよいでしょう。</div>
+</div>
+<div class="mockup">
+<div class="mockup-titlebar"><span>src/dbc/battery_monitor.c — コンフリクト</span><span>●●●</span></div>
+<div class="mockup-body">
+<div class="mockup-row"><span class="mockup-btn" style="background:#2e7d32;">現在の変更を承諾</span><span class="mockup-btn" style="background:#1565c0;">入力側の変更を承諾</span><span class="mockup-btn" style="background:#6a1b9a;">両方の変更を承諾</span></div>
+<div class="mockup-row">&lt;&lt;&lt;&lt;&lt;&lt;&lt; 現在の変更 (multiBranch_test)</div>
+<div class="mockup-row">#define HYSTERESIS_MV 50U</div>
+<div class="mockup-row">=======</div>
+<div class="mockup-row">#define OVERVOLTAGE_LATCH_MARGIN_MV 100U</div>
+<div class="mockup-row">&gt;&gt;&gt;&gt;&gt;&gt;&gt; 入力側の変更</div>
+</div>
+</div>
+<p class="note">rebase実行直後、ソース管理ビューの「マージの変更」欄に<br><code>battery_monitor.c</code>・<code>temp_alarm_fsm.h</code><br>の2ファイルが表示される瞬間が「実際にコンフリクトに直面する体験」です。ファイル名の右に「C」（Conflict）マークが付きます。</p>
+<details class="cmd-ref">
+<summary>対応するコマンド（参考）</summary>
+<pre>git fetch origin
+git rebase origin/multiBranch_test
+# ここでコンフリクトが発生する（Step B-1.5で予告した通り）
+git status
+# コンフリクトマーカーを手動で解消（次章参照）
+git add &lt;解消したファイル&gt;
+git rebase --continue
+cmake --build build
+ctest --test-dir build --output-on-failure
+git push --force-with-lease -u origin dev-b/battery-overvoltage-latch</pre>
+</details>
+</div>
+
+<h3><span class="badge badge-b">開発者B</span> Step B-3: PRマージ</h3>
+<div class="role-b">
+<div class="gui-box">
+<div class="gui-box-title">🖱 GitHub.com操作</div>
+<ol class="gui-steps">
+<li>PR #7 のページを再読み込みすると「This branch has conflicts」の警告が消え、緑色の「<strong>Merge pull request</strong>」ボタンが有効になっていることを確認する</li>
+<li>「Merge pull request」→「Confirm merge」をクリックする</li>
+</ol>
+</div>
+<details class="cmd-ref">
+<summary>対応するコマンド（参考）</summary>
+<pre>gh pr merge &lt;PR番号&gt; --merge</pre>
+</details>
+</div>
+</section>
+
+<section id="conflict-principle">
+<h2>5. コンフリクト発生の原理原則（よくある誤解）</h2>
+
+<h3>誤解1: 「同じファイル・同じ関数を触ったらコンフリクトになる」</h3>
+<div class="warn"><strong>半分正解、半分誤解です。</strong> Gitの3-way マージは<strong>ファイル単位でも関数単位でもなく、行（正確には差分の"ハンク"と、その前後の文脈行）単位</strong>で判定します。同じ関数を触っていても、変更箇所が十分離れていれば自動マージされます。</div>
+<p>実際に今回のハンズオンでも、開発者A・Bはどちらも <code>battery_evaluate()</code> という<strong>同じ関数</strong>を変更しましたが、結果は次のように分かれました。</p>
+<table>
+<tr><th>変更箇所</th><th>Aの変更</th><th>Bの変更</th><th>結果</th></tr>
+<tr><td><code>#define</code> の追加位置</td><td><code>VREF_MV</code> の直後に1行追加</td><td><code>VREF_MV</code> の直後に1行追加（<strong>全く同じ行</strong>）</td><td>コンフリクト</td></tr>
+<tr><td><code>if-else</code> チェーン</td><td><code>over</code>判定と<code>critical</code>判定の間に分岐を追加</td><td><code>low</code>判定と<code>else</code>の間に分岐を追加（<strong>離れた場所</strong>）</td><td>自動マージ成功</td></tr>
+<tr><td>構造体フィールド</td><td>末尾に <code>hysteresis_active</code> を追加</td><td>末尾に <code>fault_latched</code> を追加（<strong>全く同じ挿入位置</strong>）</td><td>コンフリクト</td></tr>
+</table>
+<p class="note">つまり「同じ関数を触ったから危ない」のではなく、「<strong>共通の祖先(merge-base)から見て、両者が全く同じ行・隣接する行を書き換えたかどうか</strong>」がコンフリクトの本質的な判定基準です。</p>
+
+<h3>誤解2: 「相手の変更が取り込まれていない(out-of-date)状態のPRは、それだけでコンフリクトになる」</h3>
+<div class="danger"><strong>誤りです。</strong> 「ベースブランチが自分より進んでいる（out-of-date）」ことと、「コンフリクトが発生する」ことは<strong>別の現象</strong>です。GitHubのPR画面には主に次の2つの状態があり、混同されがちです。</div>
+<table>
+<tr><th>GitHubの表示</th><th>意味</th><th>マージ操作</th></tr>
+<tr><td><code>This branch is out-of-date with the base branch</code></td><td>ベースが進んだが、自分の変更と重なっていない</td><td>自動マージ可能（コンフリクトなし）。ボタン一つで更新できる</td></tr>
+<tr><td><code>This branch has conflicts that must be resolved</code></td><td>ベースの変更と自分の変更が同じ箇所に重なっている</td><td>手動解消が必須。rebaseまたはmergeで解消してからpush</td></tr>
+</table>
+<div class="mermaid">
+flowchart TD
+    A["ベースブランチが自分より進んでいる?"] -->|いいえ| B["out-of-date でも conflict でもない"]
+    A -->|はい| C{"自分の変更とベース側の変更が<br/>同じ行・隣接する文脈で重なっているか"}
+    C -->|いいえ| D["out-of-date のみ<br/>自動マージ可能・conflictなし"]
+    C -->|はい| E["コンフリクト発生<br/>手動解消が必須"]
+</div>
+<p>今回のB-1.5のケースで言えば、Bのブランチは「Aのマージ後のmultiBranch_test」に対して out-of-date でした。<strong>もしAとBが別々のファイル・別々の行を変更していたら、out-of-dateではあってもコンフリクトにはならず、そのままマージできていた</strong>はずです。今回は<code>#define</code>と構造体フィールドの挿入位置が偶然重なっていたため、out-of-date であることに加えて真のコンフリクトも発生しました。</p>
+<p class="note">教訓: 「PRが赤い(out-of-date)＝コンフリクトがある」ではありません。まず <code>git fetch</code> して <code>rebase</code>（または <code>merge</code>）を試み、実際にコンフリクトマーカーが出るかどうかで初めて「本当に重なっているか」が判明します。</p>
+
+<h3>🔥 重点解説: 「PRをマージすると、先に進んでいた相手の変更を巻き戻してしまうのでは？」という不安</h3>
+<div class="warn">これは初心者が最も不安に感じやすいポイントです。「自分のブランチは古いコミットから分岐している。そんな古い状態のPRをマージしたら、その後に相手が積んだ変更が消えてしまうのでは？」という懸念ですが、<strong>結論から言うと通常の手順（merge / rebase）を踏む限り、相手の変更が消えることはありません。</strong></div>
+
+<h4>原理: PRのマージは「古い分岐点」ではなく「ベースの最新コミット」を基準に行われる</h4>
+<p>GitHubで<code>gh pr merge</code>やマージボタンを押したとき（あるいはローカルで<code>git merge</code>/<code>git rebase</code>したとき）、Gitが比較するのは次の3点です。</p>
+<ul>
+<li><strong>共通の祖先（merge-base）</strong>: AとBが分岐した時点のコミット</li>
+<li><strong>ベースブランチの現在の最新コミット</strong>: Aの変更が既にマージされた後の<code>multiBranch_test</code></li>
+<li><strong>自分のブランチの最新コミット</strong>: Bが積んだ変更</li>
+</ul>
+<p>マージ結果は「ベースブランチの<strong>現在の最新コミットの内容</strong>」＋「自分のブランチが merge-base から積み増した差分」の<strong>合成</strong>になります。ベースブランチを分岐時点まで巻き戻す操作は一切行われません。</p>
+<div class="mermaid">
+gitGraph
+   commit id: "merge-base"
+   branch "dev-b-battery-overvoltage-latch"
+   commit id: "B-change"
+   checkout main
+   commit id: "A-change"
+   commit id: "PR-A-merged"
+   merge "dev-b-battery-overvoltage-latch" id: "PR-B-merged-both-kept"
+</div>
+<p class="note">実際に本ハンズオンでも、開発者Bのブランチは開発者Aのマージ<strong>前</strong>のコミットから分岐していましたが、PR #7 をマージした後の <code>multiBranch_test</code> には、A由来の <code>HYSTERESIS_MV</code> / <code>hysteresis_active</code> と、B由来の <code>OVERVOLTAGE_LATCH_MARGIN_MV</code> / <code>fault_latched</code> が<strong>両方とも</strong>残っていることを、実際にビルド・テストで確認済みです。「Bが古い状態から始めた」ことは、最終結果からAの変更が失われる理由には<strong>なりません</strong>。</p>
+
+<h4>では、本当に相手の変更を消してしまう危険があるのはどんな時か</h4>
+<p>「out-of-date だから」ではなく、次のような<strong>操作ミス</strong>がある場合にのみ、相手の変更を消すリスクがあります。ここが本当に注意すべきポイントです。</p>
+<table>
+<tr><th>危険な操作</th><th>何が起きるか</th><th>対策</th></tr>
+<tr><td>共有ブランチ（<code>multiBranch_test</code>など）へ古いローカル状態から <code>git push --force</code></td><td>リモートの履歴そのものを、自分の古いローカル履歴で丸ごと上書きしてしまい、相手のコミットが本当に消える</td><td>共有ブランチには<strong>force pushしない</strong>のが原則。個人のfeatureブランチのみ<code>--force-with-lease</code>で運用する</td></tr>
+<tr><td>コンフリクト解消時に <code>git checkout --ours &lt;file&gt;</code> などで機械的に「自分の版」を採用</td><td>マーカーの中身を精査せず片側を丸ごと採用すると、相手の変更（このケースではAのヒステリシス処理）がファイルごと消える</td><td>コンフリクト解消は必ずマーカーの両側を読み、機能として両立できないか検討してから編集する</td></tr>
+<tr><td>相手の変更を取り込まないまま、意図的に古い内容で新しいコミットを作る（例: 手元のバックアップから丸ごと上書き）</td><td>Gitの3-wayマージの外側で行われる操作なので、単純な「上書きコミット」として消えたように見える</td><td>ファイルを丸ごと上書きするのではなく、必ず <code>git fetch</code> → <code>rebase</code>/<code>merge</code> のワークフローに乗せる</td></tr>
+<tr><td>古いローカルの参照（<code>git reset --hard &lt;古いコミット&gt;</code>）を共有ブランチに force push</td><td>ローカルでは正しく見えても、実際には相手の最新コミットより古い状態を「正」としてリモートに反映してしまう</td><td>共有ブランチをリセットする前に必ず <code>git fetch</code> して最新を確認する</td></tr>
+</table>
+<div class="danger"><strong>まとめ:</strong> 「out-of-date な状態でPRを作る／マージする」こと自体は安全です。危険なのは<strong>共有ブランチへのforce push</strong>と<strong>コンフリクト解消時の不注意な片側採用</strong>の2つだけです。この2つさえ避ければ、複数人が並行して作業しても、通常のPRフローで相手の変更が失われることはありません。</div>
+
+<h4>もう一つの不安: 「PRのベース（分岐元）が古いこと自体が、マージ先に古い内容を持ち込んでしまうのでは？」</h4>
+<p>これも非常によくある疑問です。「Bのブランチは、Aがまだ変更する前の<strong>古いbattery_monitor.c</strong>を土台にしている。そんな“古い土台”を含むBのブランチをマージしたら、その“古さ”がマージ先にも反映されて、Aの新しい変更が古い内容に戻ってしまうのでは？」という懸念です。</p>
+<div class="note"><strong>結論: なりません。</strong> Gitのマージは「Bのブランチのファイル全体」を持ち込むのではなく、<strong>Bのコミットが実際に加えた差分（パッチ）だけ</strong>をベースの最新版に適用します。Bが触っていない行は、たとえBのローカルコピー上では「古い内容」のままだったとしても、マージ結果には一切影響しません。</div>
+
+<h4>具体例で確認する</h4>
+<p><code>battery_monitor.c</code>の<code>battery_evaluate()</code>を例に、3つの時点のファイル内容を比較します。</p>
+<table>
+<tr><th>時点</th><th>over判定</th><th>critical/low判定</th><th>備考</th></tr>
+<tr><td>① merge-base（A/B分岐点）</td><td><code>if (voltage_mv &gt; ctx-&gt;over_threshold_mv)</code></td><td>ヒステリシス処理なし</td><td>AもBもここから分岐</td></tr>
+<tr><td>② ベース最新（Aマージ後）</td><td><code>over</code>判定はそのまま</td><td><strong>Aがヒステリシス処理を追加済み</strong></td><td>Bはまだこの変更を知らない</td></tr>
+<tr><td>③ Bのブランチ（分岐時点のまま）</td><td>Bが<strong>過電圧ラッチ処理を追加</strong></td><td>ヒステリシス処理は①のまま（Bのローカルには存在しない）</td><td>Bの差分は「ラッチ処理の追加」のみ</td></tr>
+<tr><td>④ マージ結果</td><td>Bが追加したラッチ処理</td><td><strong>Aが追加したヒステリシス処理（②から継承）</strong></td><td>Bは③の「ヒステリシス処理がない状態」を持ち込んだのではなく、②の上にBの差分だけを適用</td></tr>
+</table>
+<p>ポイントは③と④の違いです。Bのローカルファイルには実際には「ヒステリシス処理がない、古い<code>battery_evaluate()</code>」が存在していますが、マージ時にGitが見ているのは<strong>「Bが③で何を書き加えたか」という差分だけ</strong>です。Bが critical/low 判定部分に何も変更を加えていないため、その部分は②（Aの最新版）がそのまま残ります。「Bのファイル全体で上書きする」わけではないため、Aの新しい変更が古い内容に戻ることはありません。</p>
+
+<h4>実際に検証してみる</h4>
+<pre># マージ後のmultiBranch_testに、A由来・B由来の両方の変更が残っているか確認
+git show origin/multiBranch_test:src/dbc/battery_monitor.c | grep -n "HYSTERESIS_MV\|OVERVOLTAGE_LATCH_MARGIN_MV"
+# => 両方の#defineが出力されれば、どちらの変更も失われていないことが確認できる</pre>
+<div class="warn"><strong>唯一の例外:</strong> Bが③の時点で、Aが変更したのと<strong>同じ行（over/critical判定そのもの）</strong>にも手を加えていた場合は、そこはコンフリクトとして手動解消が必要になります（「誤解1」参照）。その場合でも、解消時にマーカーの両側をきちんと読んで両方の変更を反映させれば、古い内容がベースに逆流することはありません。</div>
+
+<h3>誤解3: 「同じ行を両者が変更したら必ずコンフリクトになる」</h3>
+<p>これも厳密には誤解です。<strong>両者が全く同じ内容に変更した場合（結果が同一）は、Gitはコンフリクトとして扱わず自動的に1つにまとめます。</strong> コンフリクトになるのは「同じ行（またはその周辺）に対して、互いに<u>異なる</u>変更を加えた」場合だけです。</p>
+
+<h3>具体例集: コンフリクトになる例／ならない例（組み込みC開発の早見表）</h3>
+<p>本リポジトリのコードに沿って、複数人が別々に修正したときに<strong>コンフリクトになるパターン</strong>と<strong>ならないパターン</strong>を具体例で整理します。判定基準は常に「共通の祖先から見て、同じ行・隣接する文脈を、互いに異なる内容で書き換えたか」です。</p>
+
+<h4>❌ コンフリクトになる例</h4>
+<table>
+<tr><th>ケース</th><th>Aさんの変更</th><th>Bさんの変更</th><th>なぜ競合するか</th></tr>
+<tr><td>同じ判定式の閾値変更</td><td><code>battery_evaluate()</code>の<code>over_threshold_mv</code>比較を<code>&gt;</code>から<code>&gt;=</code>に変更</td><td>同じ行の比較演算子はそのままに、値へマージンを追加</td><td>全く同じ1行を、異なる内容で書き換えている</td></tr>
+<tr><td>構造体フィールドの同一挿入位置</td><td><code>temp_alarm_fsm_t</code>の末尾に<code>hysteresis_active</code>を追加</td><td>同じ末尾に<code>fault_latched</code>を追加</td><td>「構造体の最終フィールドの次の行」という同一の挿入位置</td></tr>
+<tr><td>同じマクロの再定義</td><td><code>Std_Types.h</code>の<code>NULL_PTR</code>マクロの実装を<code>((void*)0)</code>から独自マクロに変更</td><td>同じ<code>NULL_PTR</code>行にAUTOSAR標準の別定義を追加</td><td>同一マクロの同一行を別内容で編集</td></tr>
+<tr><td>switch/enumの同じ挿入位置</td><td><code>temp_alarm_state_t</code> enumの末尾に新状態<code>TEMP_ALARM_STATE_CALIBRATING</code>を追加</td><td>同じ末尾に別の新状態<code>TEMP_ALARM_STATE_SHUTDOWN</code>を追加</td><td>enumの最終行という同一挿入位置</td></tr>
+<tr><td>変更 vs 削除（modify/delete）</td><td><code>hal_adc.c</code>の関数<code>hal_adc_read()</code>の中身を修正</td><td>同じ関数<code>hal_adc_read()</code>ごと削除（リファクタリングで別関数に統合）</td><td>片方は「変更」、片方は「削除」で、そもそも突き合わせ不能</td></tr>
+<tr><td>同じコメント・Doxygenタグの編集</td><td>関数のDoxygenコメントの<code>@brief</code>行を日本語で修正</td><td>同じ<code>@brief</code>行を別の説明文に修正</td><td>コメント行も通常コードと同様に行単位で判定される</td></tr>
+</table>
+
+<h4>✅ コンフリクトにならない例</h4>
+<table>
+<tr><th>ケース</th><th>Aさんの変更</th><th>Bさんの変更</th><th>なぜ自動マージされるか</th></tr>
+<tr><td>別ファイルの変更</td><td><code>battery_monitor.c</code>を修正</td><td><code>Adc.c</code>を修正</td><td>そもそもファイルが異なり、比較対象の差分が重ならない</td></tr>
+<tr><td>同一ファイル内でも離れた関数</td><td><code>battery_monitor.c</code>の<code>battery_evaluate()</code>を修正</td><td>同じファイルの<code>battery_raw_to_mv()</code>を修正</td><td>変更行が離れていて差分のハンクが重ならない</td></tr>
+<tr><td>同じ関数でも離れた分岐（本教材の実例）</td><td><code>battery_evaluate()</code>の<code>low</code>/<code>else</code>間に分岐追加</td><td>同じ関数の<code>over</code>/<code>critical</code>間に分岐追加</td><td>行番号が離れており、前後文脈も重ならない</td></tr>
+<tr><td>構造体の異なるフィールドを個別に変更</td><td><code>battery_monitor_t</code>の<code>low_threshold_mv</code>の型コメントを修正</td><td>同じ構造体の<code>over_threshold_mv</code>の型コメントを修正</td><td>異なる行（フィールド）を個別に編集しており重ならない</td></tr>
+<tr><td>全く同じ修正を偶然両者が実施</td><td><code>dbc_assert.c</code>のログ出力に同じ1行を追加</td><td>同じ場所に一字一句同じ1行を追加</td><td>差分の内容が完全一致するため、Gitは1つの変更として扱う</td></tr>
+<tr><td>片方が新規ファイルを追加</td><td>新規に<code>src/dbc/current_monitor.c</code>を追加</td><td>既存の<code>battery_monitor.c</code>を修正</td><td>新規ファイルの追加は既存ファイルの差分と無関係</td></tr>
+</table>
+
+<div class="warn"><strong>注意（隣接コンフリクト）:</strong> 「離れていれば必ず安全」というわけではありません。Gitの3-wayマージはデフォルトで前後3行の文脈も考慮するため、変更箇所がごく近い（数行以内）場合は、文脈がずれてコンフリクトになることがあります。表内の「離れた分岐」も、閾値によっては近すぎるとコンフリクトになり得る点に注意してください。</div>
+</section>
+
+<section id="conflict">
+<h2>6. コンフリクトの読み方と対処</h2>
+
+<h3>6.1 コンフリクトマーカーの読み方</h3>
+<pre>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+（リベース先＝multiBranch_test側、つまりA側の変更）
+=======
+（リベース中のコミット＝B側の変更）
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; d4660db (feat: 過電圧ラッチ機能を追加)</pre>
+<table>
+<tr><th>記号</th><th>意味</th></tr>
+<tr><td><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> 〜 <code>=======</code></td><td>rebase先（今回は更新後の <code>multiBranch_test</code>、Aの変更）</td></tr>
+<tr><td><code>=======</code> 〜 <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code></td><td>取り込もうとしている自分のコミット（Bの変更）</td></tr>
+</table>
+<div class="gui-box">
+<div class="gui-box-title">🖱 VS Codeでの見え方の対応表</div>
+<p>VS Codeのエディタでは、上記のテキストマーカーの代わりに色付きのブロックとインラインボタン（CodeLens）で同じ情報が表示されます。</p>
+<table>
+<tr><th>テキストのマーカー</th><th>VS Code上の表示</th></tr>
+<tr><td><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> の側（rebase先＝Aの変更）</td><td>緑色の帯「現在の変更 (Current Change)」＋ボタン「現在の変更を承諾」</td></tr>
+<tr><td><code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> の側（取り込み側＝Bの変更）</td><td>青色の帯「入力側の変更 (Incoming Change)」＋ボタン「入力側の変更を承諾」</td></tr>
+<tr><td>両方採用したい場合</td><td>ボタン「両方の変更を承諾 (Accept Both Changes)」、または手動編集</td></tr>
+</table>
+</div>
+<div class="note">解消方針: 今回のケースは両者の変更が機能として排他ではないため、<strong>両方を残す</strong>形（マーカーを削除し、両方の定義・フィールドを併記）で解消します。実務では、どちらか一方が不要になるケースや、両者と相談して設計をすり合わせるケースもあります。</div>
+
+<h3>6.2 merge と rebase の違い</h3>
+<table>
+<tr><th></th><th><code>git merge</code></th><th><code>git rebase</code></th></tr>
+<tr><td>履歴</td><td>マージコミットが残り分岐が見える</td><td>直線的な履歴になる（書き換え）</td></tr>
+<tr><td>コンフリクト解消回数</td><td>1回にまとまる</td><td>コミットごとに発生しうる</td></tr>
+<tr><td>共有ブランチへの影響</td><td>安全（履歴を書き換えない）</td><td>push済みの共有ブランチには要注意</td></tr>
+<tr><td>VS Codeでの実行方法</td><td>ソース管理ビュー「...」→「プル、リベースの代わりにマージ」、または「ブランチのマージ...」</td><td>コマンドパレット→「Git: Rebase Branch...」</td></tr>
+</table>
+<div class="warn">VS Codeのソース管理ビューには、通常の操作（コミット・プッシュ・プル・ブランチ作成）向けの分かりやすいボタンはありますが、<strong>rebaseだけは専用ボタンがなく、コマンドパレット（<kbd>Ctrl+Shift+P</kbd>）経由の操作になります</strong>。「リベースは少し上級者向けの操作」と位置づけられていることを受講者に伝えてください。</div>
+
+<h3>6.3 force-push の危険性</h3>
+<div class="danger"><strong>危険:</strong> <code>git push --force</code> はリモートの履歴を無条件に上書きし、他人が積んだコミットを消してしまう可能性があります。必ず <code>git push --force-with-lease</code> を使い、リモートが自分の想定と異なる場合は失敗させて事故を防ぎましょう。</div>
+<div class="note">VS Codeでステータスバーの「同期」表示から強制的にプッシュする場合、設定 <code>git.useForcePushWithLease</code>（既定で<code>true</code>）が有効であれば、GUI操作でも自動的に <code>--force-with-lease</code> 相当の安全な強制プッシュが行われます。念のため設定を確認しておくとよいでしょう。</div>
+</section>
+
+<section id="reflection">
+<h2>7. 振り返り</h2>
+<ul>
+<li>同じ関数・同じファイルを複数人で触るときは、事前に役割分担やインターフェースを合わせておくとコンフリクトを減らせる</li>
+<li>PRは小さく・頻繁に出すほど、コンフリクトの解消コストが下がる</li>
+<li>「相手の変更がローカルに反映されていない」状態を避けるには、作業開始前・PR作成前に <code>git fetch</code> ＋ <code>git rebase origin/&lt;base&gt;</code>（または <code>pull --rebase</code>）を習慣化する</li>
+<li>コンフリクト解消後は必ずビルド・テストを実行し、機械的なマーカー除去だけでなく機能として正しいかを確認する</li>
+</ul>
+</section>
+
+<section id="trainer">
+<h2>8. トレーナー向け：再現・配布手順</h2>
+
+<h3>8.1 演習の起点について（重要）</h3>
+<div class="warn"><strong>注意:</strong> 本教材の元になった演習（PR #6・#7）は、実際に <code>multiBranch_test</code> へマージ済みです。そのため<strong>現在の<code>multiBranch_test</code>には、開発者A・Bのヒステリシス／過電圧ラッチ処理が既に両方含まれています</strong>。同じ内容で全く同じコンフリクトを再現したい場合、<code>multiBranch_test</code>を演習前の状態に force push で巻き戻すことは<strong>絶対に行わないでください</strong>（共有ブランチへのforce pushは本教材で「危険」と教えている操作そのものです）。</div>
+<p>代わりに、演習前の状態を指す<strong>タグ</strong> <code>handson-git-conflict-baseline</code>（<code>multiBranch_test</code>を書き換えず追加しただけの、非破壊的な参照）を用意しています。再演習する場合はこのタグから分岐してください。</p>
+<pre># タグを起点に演習用ブランチを作り直す（multiBranch_test 自体は一切変更しない）
+git fetch origin --tags
+git checkout -b dev-a/&lt;演習名&gt; handson-git-conflict-baseline
+git checkout -b dev-b/&lt;演習名&gt; handson-git-conflict-baseline
+# 以降は本編の Step A-1 / Step B-1 と同じ要領で進める（ただし最終PRのbaseは
+# multiBranch_test ではなく、演習専用の使い捨てブランチ・使い捨てリポジトリを推奨）</pre>
+<div class="note">この手順は実際にローカルのみ（<code>trial-main</code>/<code>trial-dev-a</code>/<code>trial-dev-b</code> という使い捨てブランチ、pushなし）で動作確認済みです。タグから分岐 → 両者が同じ挿入位置に別々の変更を追加 → 片方をマージ → もう片方をリベース、で本編と同じ内容のコンフリクトマーカーが再現されました。</div>
+
+<h3>8.2 演習環境のリセット（受講者のローカル作業ブランチのみ）</h3>
+<pre># 受講者ローカルの演習用ブランチを削除して起点に戻す
+git checkout multiBranch_test
+git branch -D dev-a/battery-hysteresis dev-b/battery-overvoltage-latch
+git push origin --delete dev-a/battery-hysteresis dev-b/battery-overvoltage-latch
+# multiBranch_test 自体は最新のリモートに追従させるだけ（reset --hard で巻き戻さない）
+git fetch origin
+git merge --ff-only origin/multiBranch_test</pre>
+<div class="warn">上記はローカル・リモートの<strong>演習用feature branch</strong>を削除する破壊的操作です。<code>multiBranch_test</code>や<code>main</code>など共有ブランチには <code>reset --hard</code> や <code>push --force</code> を行わないでください。実行前に対象ブランチ名を必ず確認してください。</div>
+
+<h3>8.3 受講者ごとに独立した演習にする場合</h3>
+<ul>
+<li>各受講者（ペア）ごとにforkまたは専用ブランチ名（例: <code>dev-a/&lt;name&gt;</code>）を使い分ける</li>
+<li>同じ<code>multiBranch_test</code>を共有する場合は、演習前に必ず<code>handson-git-conflict-baseline</code>タグから分岐し直す</li>
+</ul>
+
+<h3>8.4 教材の拡張案（他の組み込み現場ケース）</h3>
+<ul>
+<li>AUTOSAR層（<code>Adc.c</code> / <code>Dio.c</code>）のレジスタ・API変更が競合するケース</li>
+<li>割り込みハンドラ（ISR）の追加・変更が同一ファイルで競合するケース</li>
+<li>ヘッダのマクロ定義変更（例: 閾値定数）とロジック変更が別ブランチで競合するケース</li>
+<li>リリースブランチへのバックポート時に発生するコンフリクト（cherry-pick演習への拡張）</li>
+</ul>
+</section>
+
+</main>
+<footer>組み込みC TDD教材 — Gitブランチ運用ハンズオン</footer>
+<script src="assets/vendor/mermaid.min.js"></script>
+<script>
+(function () {
+    'use strict';
+    if (window.mermaid) {
+        window.mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'strict'
+        });
+    }
+})();
+</script>
+</body>
+</html>
