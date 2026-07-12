@@ -89,5 +89,6 @@ battery_state_t battery_monitor_update(battery_monitor_t *ctx, uint16_t raw_adc)
     ctx->last_voltage_mv = voltage_mv;
     ctx->last_state = state;
 
+    /* QAC-A add */
     return state;
 }
