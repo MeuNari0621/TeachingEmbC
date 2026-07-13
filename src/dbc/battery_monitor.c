@@ -21,9 +21,6 @@ void battery_monitor_init(battery_monitor_t *ctx,
                           uint16_t critical_mv,
                           uint16_t over_mv)
 {
-    /* QAC-B add */
-    uint8_t null_flg = 0;
-
     /* 防御的処理: NULLポインタ */
     /* QAC-A2 */
     if (ctx == 0) {
