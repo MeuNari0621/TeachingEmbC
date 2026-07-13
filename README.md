@@ -21,6 +21,7 @@
 - Mermaid は docs/assets/vendor/mermaid.min.js にローカル固定版を配置しています
 - ページ内の振る舞いは docs/assets/index.js に分離しています
 - 用語集は左側ナビの「用語集」タブからポップアップ表示します
+- VS Code の WebView プレビューでは Service Worker 登録失敗を避けるため Mermaid 読み込みを抑止します。図の最終確認はブラウザ表示で行ってください
 
 ## 検証状況
 
