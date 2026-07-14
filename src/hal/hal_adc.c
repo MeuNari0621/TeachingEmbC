@@ -39,7 +39,9 @@ void hal_adc_init(void) {
 uint16_t hal_adc_read(uint8_t channel) {
     Adc_ValueGroupType raw_value = 0u;
 
-    (void)channel;
+    /* ベースが先に進んだぞ　*/
+    /* 今度はコンフリクトする*/
+    if( 1u == channel) return;
     hal_adc_ensure_initialized();
 
     Adc_StartGroupConversion(HAL_ADC_AUTOSAR_GROUP);
