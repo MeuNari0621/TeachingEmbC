@@ -20,15 +20,19 @@ static void hal_adc_ensure_initialized(void) {
         0u
     };
 
+    /* ベースが先に進んだぞ
+       early returnをやめてelseにつないだ */
     if (initialized != 0u) {
         return;
+    }else{
+        Adc_Init(&adc_config);
+        initialized = 1u;
     }
-
-    Adc_Init(&adc_config);
-    initialized = 1u;
 }
 
 void hal_adc_init(void) {
+    /* ベースが先に進んだぞ */
+    /* QAC-ベース  */
     hal_adc_ensure_initialized();
 }
 
