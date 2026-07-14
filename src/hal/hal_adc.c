@@ -51,3 +51,7 @@ uint16_t hal_adc_read(uint8_t channel) {
 
     return raw_value;
 }
+
+    /* ベースが先に進んだぞ　*/
+    /* 今度はコンフリクト市内*/
+    /* meumeu */
