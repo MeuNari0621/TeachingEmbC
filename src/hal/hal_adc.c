@@ -11,7 +11,7 @@
 
 enum {
     HAL_ADC_AUTOSAR_GROUP = 0,
-    /*　各自のブランチで関係ないとこ更新 */
+    /*　各自のブランチで関係ないとこ更新1 */
     HAL_ADC_NON_AUTOSA_GROUP
 };
 
