@@ -11,7 +11,7 @@
 
 enum {
     HAL_ADC_AUTOSAR_GROUP = 0,
-    /*　各自のブランチで関係ないとこ更新 */
+    /*　各自のブランチで関係ないとこ更新1 */
     HAL_ADC_NON_AUTOSA_GROUP
 };
 
@@ -41,7 +41,8 @@ void hal_adc_init(void) {
 uint16_t hal_adc_read(uint8_t channel) {
     Adc_ValueGroupType raw_value = 0u;
 
-    (void)channel;
+    /* ブランチも先に進むよ2 */
+    if( 0u == channel) return;
     hal_adc_ensure_initialized();
 
     Adc_StartGroupConversion(HAL_ADC_AUTOSAR_GROUP);
