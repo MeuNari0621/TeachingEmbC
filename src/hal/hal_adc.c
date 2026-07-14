@@ -12,7 +12,9 @@
 enum {
     HAL_ADC_AUTOSAR_GROUP = 0,
     /*　各自のブランチで関係ないとこ更新1 */
-    HAL_ADC_NON_AUTOSA_GROUP
+    HAL_ADC_NON_AUTOSA_GROUP,
+    /*　各自のブランチで関係ないとこ更新3 */
+    HAL_ADC_NON_AUTOSA_GROUP2
 };
 
 static void hal_adc_ensure_initialized(void) {
