@@ -50,6 +50,8 @@ uint16_t hal_adc_read(uint8_t channel) {
 
     Adc_StartGroupConversion(HAL_ADC_AUTOSAR_GROUP);
     if (Adc_ReadGroup(HAL_ADC_AUTOSAR_GROUP, &raw_value) != E_OK) {
+        /* ブランチが先に進んだぞ4 */
+        /* QAC-ブランチ　ここは逸脱でいく  */
         return 0u;
     }
 
