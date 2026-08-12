@@ -1,0 +1,7 @@
+========================================
+Git Conflict Exercise Log
+========================================
+
+This file will be edited by multiple users.
+Conflicts will occur during merges
+
